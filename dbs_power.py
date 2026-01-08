@@ -1,6 +1,6 @@
 import os
 from scipy.signal import butter
-from preprocessing_functions import save_power_data
+from utils.preprocessing_functions import save_power_data
 
 # load in np file
 

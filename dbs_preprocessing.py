@@ -1,4 +1,4 @@
-from preprocessing_functions import *
+from utils.preprocessing_functions import *
 import json
 
 # paths
