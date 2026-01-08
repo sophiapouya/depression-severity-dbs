@@ -4,7 +4,7 @@ import mne
 import scipy.io as sio
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
-from brpylib import NsxFile
+from utils.brpylib import NsxFile
 from scipy.signal import filtfilt, welch, firwin, convolve, find_peaks, decimate, hilbert
 import fnmatch
 import pandas as pd
