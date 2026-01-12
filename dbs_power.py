@@ -7,8 +7,8 @@ from utils.preprocessing_functions import save_power_data
 base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
 subj_name = "DBSTRD001"
 all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-ref_type = "esr"
-ref_types = ["bipolar","car","esr"]
+ref_type = "bipolar_alternating"
+ref_types = ["bipolar","car","esr","bipolar_alternating"]
 
 
 EXCLUDED_SESSIONS = {

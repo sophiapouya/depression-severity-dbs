@@ -4,7 +4,7 @@ import mne
 import scipy.io as sio
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
-from utils.brpylib import NsxFile
+from .brpylib import NsxFile
 from scipy.signal import filtfilt, welch, firwin, convolve, find_peaks, decimate, hilbert
 import fnmatch
 import pandas as pd
@@ -95,7 +95,7 @@ def find_channels(channel_names, patterns):
     
     return dbs_chans, dbs_indices
 
-def save_bipolar_chans(probes, raw_data, block_name, save_dir):
+def save_bipolar_chans(probes, raw_data, block_name, save_dir, mode):
     for probe in probes:
         avg_1, avg_2 = [], []
         ch1, ch8 = [], []
@@ -116,12 +116,21 @@ def save_bipolar_chans(probes, raw_data, block_name, save_dir):
 
         # save off each bipolar channel
         bp_chans = []
-        bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
-        bp_chans.append(bp1)
-        bp2 = avg_1_total - avg_2_total
-        bp_chans.append(bp2)
-        bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
-        bp_chans.append(bp3)
+
+        if mode == "regular":
+            bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
+            bp_chans.append(bp1)
+            bp2 = avg_1_total - avg_2_total
+            bp_chans.append(bp2)
+            bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
+            bp_chans.append(bp3)
+        elif mode == "alternating":
+            bp1 = raw_data.get_data(picks=ch1).flatten() - raw_data.get_data(picks=ch8).flatten()
+            bp_chans.append(bp1)
+            bp2 = raw_data.get_data(picks=ch1).flatten() - avg_2_total
+            bp_chans.append(bp2)
+            bp3 = avg_1_total - raw_data.get_data(picks=ch8).flatten()
+            bp_chans.append(bp3)
 
         for i, bp in enumerate(bp_chans):
             bipolar_file_name = os.path.join(save_dir, f"{block_name}_{probe}_bipolarCh_{i+1}.npy")
@@ -339,6 +348,10 @@ def save_power_data(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_typ
     elif ref_type == "esr":
         working_dir = os.path.join(sbj_dir, "esr_channels")
         power_dir = os.path.join(working_dir, "power_esr")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "bipolar_alternating":
+        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
+        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
         os.makedirs(power_dir, exist_ok=True)
     
 

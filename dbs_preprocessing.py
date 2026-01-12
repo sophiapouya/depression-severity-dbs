@@ -142,20 +142,25 @@ if __name__ == "__main__":
         # common average reference the data
         probes = create_dbs_probes(raw_file=raw_dbs)
 
-        # bipolar reference the data
-        bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
-        os.makedirs(bipolar_dir, exist_ok=True)
-        save_bipolar_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir)
+        # # bipolar reference the data
+        # bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
+        # os.makedirs(bipolar_dir, exist_ok=True)
+        # save_bipolar_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "regular")
 
-        # common average reference
-        car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
-        os.makedirs(car_dir, exist_ok=True)
-        save_car_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir)
+        # bipolar alternating referencing for the data
+        bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
+        os.makedirs(bipolar_alternating_dir, exist_ok = True)
+        save_bipolar_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="alternating")
 
-        # esr -> averaging 
-        esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
-        os.makedirs(esr_dir, exist_ok = True)
-        save_esr_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir)
+        # # common average reference
+        # car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
+        # os.makedirs(car_dir, exist_ok=True)
+        # save_car_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir)
+
+        # # esr -> averaging 
+        # esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
+        # os.makedirs(esr_dir, exist_ok = True)
+        # save_esr_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir)
 
 
 

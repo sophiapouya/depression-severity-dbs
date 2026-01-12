@@ -6,12 +6,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-subj_name = "DBSTRD002"
-ref_type = "car"
+subj_name = "DBSTRD014"
+ref_type = "bipolar_alternating"
 
 catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
 base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
-plot_dir = "/Users/sophiapouya/workspace/bcm/CATDI/preprocessing_reworked/dbs_paper_analysis/corr_plots"
+plot_dir = "/Users/sophiapouya/workspace/bcm/CATDI/depression-severity-dbs/corr_plots"
 
 sbj_dir = os.path.join(base_dir, subj_name)
 if ref_type == "bipolar":
@@ -23,7 +23,9 @@ elif ref_type == "car":
 elif ref_type == "esr":
     esr_power_dir = os.path.join(sbj_dir, "esr_channels","power_esr")
     file = os.path.join(esr_power_dir, f"{subj_name}_esr_power.csv")
-
+elif ref_type == "bipolar_alternating":
+    bipolar_alternating_power_dir = os.path.join(sbj_dir, "bipolar_alternating_channels","power_bipolar_alternating")
+    file = os.path.join(bipolar_alternating_power_dir, f"{subj_name}_bipolar_alternating_power.csv")
 
 # add the catdi scores to the df saved
 subj_data = pd.read_csv(file)
