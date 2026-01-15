@@ -17,15 +17,17 @@ dbs_preprocessing.py
 
 ## Feature Extraction
 dbs_power.py
-  - calculates the
+  - calculates the power within each band using a hilbert transform
   - saves a csv per patient with averaged log power values in each frequency band
-      frequency bands defined as:
-        - delta: 1-4 hz
-        - theta: 4-8 hz
-        - alpha: 8-12 hz
-        - beta: 12-30 hz
-        - low gamma: 35-50 hz
-        - high gamma: 70-150 hz
+
+    frequency bands defined as:
+       
+       - delta: 1-4 hz
+       - theta: 4-8 hz
+       - alpha: 8-12 hz
+       - beta: 12-30 hz
+       - low gamma: 35-50 hz
+       - high gamma: 70-150 hz
 
 
 ## Correlation
