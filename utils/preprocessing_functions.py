@@ -159,42 +159,6 @@ def save_esr_chans(probes, raw_data, block_name, save_dir):
             esr_file_name = os.path.join(save_dir, f"{block_name}_{probe}_esrCh_{num[-1]}.npy")
             np.save(esr_file_name, esr_chan)
 
-def matlab_notch_filter(data, fs, notch_freqs, N=300):
-    # data: shape (n_channels, n_samples)
-    # fs: sampling rate
-    # notch_freqs: list like [60] or [60, 120, 180]
-
-    if notch_freqs is None or len(notch_freqs)==0:
-        return data
-
-    freqconv = 2 / fs
-    filters = []
-
-    for f0 in notch_freqs:
-        wn = f0 * freqconv
-        h = firwin(N+1, wn, window='hann')     # FIR lowpass
-        nf = 2*h - np.concatenate([
-            np.zeros(N//2),
-            np.array([1.0]),
-            np.zeros(N//2)
-        ])
-        filters.append(nf)
-
-    # combine notches if needed
-    if len(filters) > 1:
-        nf = filters[0]
-        for f in filters[1:]:
-            nf = convolve(nf, f)
-    else:
-        nf = filters[0]
-
-    # apply filtfilt to each channel
-    out = np.zeros_like(data)
-    for i in range(data.shape[0]):
-        out[i] = filtfilt(nf, [1.0], data[i])
-
-    return out
-
 def detect_line_noise_peaks(data, fs,
                              fmin=50.0,
                              fmax=500.0,
