@@ -362,3 +362,76 @@ def save_power_data(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_typ
             
     df = pd.DataFrame(master_list)
     df.to_csv(os.path.join(power_dir,f"{subj_name}_{ref_type}_power.csv"))
+
+
+
+def save_py_neuromod_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
+    if ref_type == "bipolar":
+        working_dir = os.path.join(sbj_dir, "bipolar_channels")
+        power_dir = os.path.join(working_dir, "power_bipolar")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "car":
+        working_dir = os.path.join(sbj_dir, "car_channels")
+        power_dir = os.path.join(working_dir, "power_car")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "esr":
+        working_dir = os.path.join(sbj_dir, "esr_channels")
+        power_dir = os.path.join(working_dir, "power_esr")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "bipolar_alternating":
+        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
+        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
+        os.makedirs(power_dir, exist_ok=True)
+    
+    # create output directory for py_neuromod files
+    py_neuro_dir = os.path.join(sbj_dir,"py_neuro_files")
+    os.makedirs(py_neuro_dir, exist_ok=True)
+
+
+    with os.scandir(working_dir) as files:
+        session_info = {}
+        for file in files:
+            # make sure it's actually a file
+            if not file.name.endswith(".npy"):
+                continue
+
+            name, ext = os.path.splitext(file.name)
+            name_parts = name.split("_")
+            ch_num= name_parts[-1]
+            probe_name = name_parts[-3]
+            session_name = "_".join(name_parts[:-3])
+            probe_ch_num = probe_name + "_" + ch_num
+            
+            # check if it's an excluded session
+            if session_name in EXCLUDED_SESSIONS[subj_name]:
+                continue
+
+            # load the file
+            bipolar_data = np.load(file.path)
+            
+            #downsample the data
+            bipolar_data=decimate(bipolar_data,2)
+
+            # if the category doesn't exist, create it:
+            if session_name not in session_info:
+                session_info[session_name] = {'data': [], 'ch_names': []}
+            
+            # load the time series for the data category
+            session_info[session_name]['data'].append(bipolar_data)
+            session_info[session_name]['ch_names'].append(probe_ch_num)
+
+    
+    for session_name, category_data in session_info.items():
+        # create the time series for the session (channels x time points)
+        session_data = np.array(category_data['data'])
+
+        # create the session info (the channel names)
+        info = mne.create_info(ch_names=category_data['ch_names'], sfreq=1000)
+
+        # create the pynm mne object
+        pynm_raw_obj = mne.io.RawArray(session_data, info)
+
+        # save as a fif file
+        save_path = os.path.join(py_neuro_dir, f'{session_name}_pynm.fif')
+        pynm_raw_obj.save(save_path)
+
