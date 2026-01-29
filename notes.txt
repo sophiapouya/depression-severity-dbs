@@ -1,0 +1,27 @@
+steps for running pipeline:
+bandpass and notch filter data
+visual inspection of each session-> mark bad chans and bad time points; marked bad sessions
+    need to revisit the edge cases and plot psd and other info for those sessions
+    included either the entire probe or selectively excluded channels that had neighboring channels to account for (2,3,4) or (5,6,7)
+referencing methods performed -> bipolar, bipolar alternating, car, and esr
+individual channels from above method saved as npy file
+power performed per reference method with hilbert in 6 canonical bands to find avg log power -> files saved as patient df
+catdi correlation plots performed with patient power files
+chose bipolar alternating channels and prepped them for py neuromodulation
+    saved session level fif files with bipolar alternating channels
+performed feature extraction on fif files with pynm and saved as CATDI_master_feature csv
+    included all patients and all sessions
+performed pca to visualize how pcs 
+
+
+
+pca analysis:
+each pc score represents the session level prediction onto a feature-defined direction (the principal component column)
+
+LASSO regression:
+strategy 1: pc scores as inputs and catdi scores as outputs to predict
+pc scores matrix -> sessions X num of PCs
+score matrix -> catdi scores (sessions)
+
+important properties of pc scores:
+uncorrelated, ordered by variance, orthogonal axes
