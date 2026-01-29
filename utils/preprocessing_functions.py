@@ -433,5 +433,5 @@ def save_py_neuromod_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
 
         # save as a fif file
         save_path = os.path.join(py_neuro_dir, f'{session_name}_pynm.fif')
-        pynm_raw_obj.save(save_path)
+        pynm_raw_obj.save(save_path, overwrite=True)
 
