@@ -96,9 +96,12 @@ def find_channels(channel_names, patterns):
     return dbs_chans, dbs_indices
 
 def save_bipolar_chans(probes, raw_data, block_name, save_dir, mode):
+    
+    ch_names = []
+    bp_chans = []
     for probe in probes:
         avg_1, avg_2 = [], []
-        ch1, ch8 = [], []
+        ch1, ch8 = None, None
         for chan in probes[probe]:
             prefix = chan.split("-")[0]
             # average 2, 3, and 4
@@ -114,27 +117,48 @@ def save_bipolar_chans(probes, raw_data, block_name, save_dir, mode):
         avg_1_total = raw_data.get_data(picks =avg_1).mean(axis=0)   # 1 channel, time series data
         avg_2_total = raw_data.get_data(picks=avg_2).mean(axis=0)    # 1 channel, time series data
 
-        # save off each bipolar channel
-        bp_chans = []
-
         if mode == "regular":
             bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
-            bp_chans.append(bp1)
             bp2 = avg_1_total - avg_2_total
-            bp_chans.append(bp2)
             bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
-            bp_chans.append(bp3)
         elif mode == "alternating":
             bp1 = raw_data.get_data(picks=ch1).flatten() - raw_data.get_data(picks=ch8).flatten()
-            bp_chans.append(bp1)
             bp2 = raw_data.get_data(picks=ch1).flatten() - avg_2_total
-            bp_chans.append(bp2)
             bp3 = avg_1_total - raw_data.get_data(picks=ch8).flatten()
-            bp_chans.append(bp3)
+        ch_names.append(f"{probe}_1")
+        ch_names.append(f"{probe}_2")
+        ch_names.append(f"{probe}_3")
+        bp_chans.append(bp1)
+        bp_chans.append(bp2)
+        bp_chans.append(bp3)
+    bp_chans_arr = np.stack(bp_chans,axis=0)
 
-        for i, bp in enumerate(bp_chans):
-            bipolar_file_name = os.path.join(save_dir, f"{block_name}_{probe}_bipolarCh_{i+1}.npy")
-            np.save(bipolar_file_name, bp)
+    # save the session level fif file
+    info = mne.create_info(ch_names=ch_names, sfreq=raw_data.info['sfreq'], ch_types='dbs')
+    raw_bp=mne.io.RawArray(bp_chans_arr, info, verbose=False)
+
+    # deal with the annotations
+    annotations = raw_data.annotations
+    # remove the onset 0.0, duration 0.0 used when visually inspecting
+    if annotations is not None and len(annotations)>0:
+        new_onset, new_duration, new_description = [],[],[]
+        for onset, duration, description in zip(annotations.onset, annotations.duration, annotations.description):
+            if not (float(onset) == 0.0 and float(duration) == 0.0):
+                new_onset.append(float(onset))
+                new_duration.append(float(duration))
+                new_description.append(description)
+        if len(new_onset)>0:
+            raw_bp.set_annotations(mne.Annotations(onset=new_onset, duration=new_duration,description=new_description))
+        else:
+            raw_bp.set_annotations(mne.Annotations(onset=[],duration=[], description=[]))
+    
+    # downsample to 1000hz 
+    raw_bp.resample(1000)
+    
+    # save as fif file
+    session_file_name = os.path.join(save_dir, f"{block_name}.fif")
+    raw_bp.save(session_file_name, overwrite=True)
+
 
 def save_car_chans(probes, raw_data, block_name, save_dir):
     avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
@@ -363,9 +387,154 @@ def save_power_data(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_typ
     df = pd.DataFrame(master_list)
     df.to_csv(os.path.join(power_dir,f"{subj_name}_{ref_type}_power.csv"))
 
+def save_power_data_from_fif(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_type, subj_name, sbj_dir):
+    if ref_type == "bipolar":
+        working_dir = os.path.join(sbj_dir, "bipolar_channels")
+        power_dir = os.path.join(working_dir, "power_bipolar")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "car":
+        working_dir = os.path.join(sbj_dir, "car_channels")
+        power_dir = os.path.join(working_dir, "power_car")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "esr":
+        working_dir = os.path.join(sbj_dir, "esr_channels")
+        power_dir = os.path.join(working_dir, "power_esr")
+        os.makedirs(power_dir, exist_ok=True)
+    elif ref_type == "bipolar_alternating":
+        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
+        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
+        os.makedirs(power_dir, exist_ok=True)
+    
+    # window settings
+    SFREQ = 1000
+    WINDOW_S = 2.0
+    STEP_S = 1.0
+    WINDOW_SAMPLES = int(WINDOW_S * SFREQ)
+    STEP_SAMPLES = int(STEP_S * SFREQ)
+
+    master_list = []
+    with os.scandir(working_dir) as files:
+        for file in files:
+            session_dict = {}
+            # make sure it's a fif file
+            if not file.name.endswith(".fif"):
+                continue
+
+            session_name = os.path.splitext(file.name)[0]
+
+            if session_name in EXCLUDED_SESSIONS[subj_name]:
+                continue
+
+            file_path = file.path
+
+            raw = mne.io.read_raw_fif(file_path, preload=True, verbose=False)
+
+            data = raw.get_data()
+            ch_names = raw.ch_names
+
+            total_time_s = raw.times[-1]
+            n_samples = data.shape[1]
+
+            # bad intervals list
+            bads = []
+            for onset, duration, desc in zip(raw.annotations.onset,
+                                             raw.annotations.duration,
+                                             raw.annotations.description):
+                if str(desc) == "BAD_artifact":
+                    bads.append((float(onset), float(onset + duration)))
+            
+            bads = sorted(bads, key=lambda x: x[0])
+
+            # good intervals list
+            goods = []
+            current = 0.0
+
+            for bad_start, bad_end in bads:
+                if bad_start > current:
+                    goods.append((current, bad_start))
+                current = bad_end
+
+            if current < total_time_s:
+                goods.append((current, total_time_s))
+
+            # If there were no BAD annotations, goods = whole session
+            if len(bads) == 0:
+                goods = [(0.0, total_time_s)]
+
+            # Keep only good intervals that can fit at least ONE full window
+            usable_goods = []
+            for g_start, g_end in goods:
+                if (g_end - g_start) >= WINDOW_S:
+                    usable_goods.append((g_start, g_end))
+
+            if len(usable_goods) == 0:
+                # no usable data after artifact removal
+                continue
+
+            # Per channel power calc
+            for ch_idx, ch in enumerate(ch_names):
+
+                probe_name = ch.split("_")[0]
+
+                session_dict = {
+                    "session": session_name,
+                    "probe": probe_name,
+                    "ch_name": ch
+                }
+                x = data[ch_idx, :]
+
+                for band in FEATURE_BANDS.keys():
+
+                    b, a = band_coefficients[band]
+                    window_means = []
+
+                    # loop over each good interval
+                    for g_start_s, g_end_s in usable_goods:
+
+                        start_sample = int(np.round(g_start_s * SFREQ))
+                        end_sample = int(np.round(g_end_s * SFREQ))
+
+                        # make sure bounds are valid
+                        start_sample = max(0, start_sample)
+                        end_sample = min(n_samples, end_sample)
+
+                        interval_len = end_sample - start_sample
+                        n_windows = (interval_len - WINDOW_SAMPLES) // STEP_SAMPLES + 1
+
+                        if n_windows == 0:
+                            continue
+                        
+                        x_interval = x[start_sample:end_sample]
+                        band_data = filtfilt(b, a, x_interval)
+
+                        for w in range(n_windows):
+                            s = w * STEP_SAMPLES
+                            e = s + WINDOW_SAMPLES
+
+                            segment = band_data[s:e]
+
+                            # Safety: skip if window isn't full length
+                            if segment.shape[0] != WINDOW_SAMPLES:
+                                continue
+
+                            analytic = hilbert(segment)
+                            power = np.abs(analytic) ** 2
+                            log_power = np.log10(power)
+                            window_means.append(np.mean(log_power))
+
+                    # If a channel/band has no windows (should be rare), store NaN
+                    if len(window_means) == 0:
+                        session_dict[band] = np.nan
+                    else:
+                        session_dict[band] = float(np.mean(window_means))
+
+                master_list.append(session_dict)
+
+    df = pd.DataFrame(master_list)
+    df.to_csv(os.path.join(power_dir, f"{subj_name}_{ref_type}_power.csv"), index=False)
 
 
-def save_py_neuromod_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
+def save_fif_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
     if ref_type == "bipolar":
         working_dir = os.path.join(sbj_dir, "bipolar_channels")
         power_dir = os.path.join(working_dir, "power_bipolar")
@@ -386,7 +555,6 @@ def save_py_neuromod_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
     # create output directory for py_neuromod files
     py_neuro_dir = os.path.join(sbj_dir,"py_neuro_files")
     os.makedirs(py_neuro_dir, exist_ok=True)
-
 
     with os.scandir(working_dir) as files:
         session_info = {}

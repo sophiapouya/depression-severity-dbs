@@ -4,7 +4,7 @@ import json
 # paths
 DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
 PROJECT_NAME = "CATDI"
-SBJ_NAME = "DBSTRD014" # Subject to process
+SBJ_NAME = "DBSTRD001" # Subject to process
 
 ORIGINAL_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'originalData', SBJ_NAME)
 DBS_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'dbsData', SBJ_NAME)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         raw_voltage_dbs = scale_to_volts(X_counts_dbs, ext_headers_dbs)
         info_dbs = mne.create_info(ch_names=dbs_chans, sfreq=fs, ch_types='dbs')
-        raw_dbs = mne.io.RawArray(raw_voltage_dbs, info_dbs, verbose=False)
+        raw_dbs = mne.io.RawArray(raw_voltage_dbs, info_dbs, verbose=False, preload=True)
         
         # downsample if necessary (should this go after filtering?)
         if fs > TARGET_SFREQ:
@@ -102,31 +102,30 @@ if __name__ == "__main__":
         else:
             with open(json_file, "r") as file:
                metadata = json.load(file)
-            
-            # clear any previous annotations
-            raw_dbs.set_annotations(None)
+
+            onsets, durations, descriptions = [],[], []
 
             # grab the bad channels
             raw_dbs.info['bads'] = metadata["bad_chans"]
 
             # remake the annotations
             for item in metadata["artifacts"]:
-                raw_dbs.annotations.append(
-                    onset=item["onset"],
-                    duration = item["duration"],
-                    description = "BAD_artifact"
-                )
+                if not (item["onset"] == 0.0 and item["duration"] == 0.0):  # don't include filler 
+                    onsets.append(float(item["onset"]))
+                    durations.append(float(item["duration"]))
+                    descriptions.append("BAD_artifact")
+            annotations = mne.Annotations(
+                onset = onsets,
+                duration= durations,
+                description = descriptions
+            )
+
+            raw_dbs.set_annotations(annotations)
 
         # remove the bad chans if there are any
         if raw_dbs.info['bads']:
             raw_dbs.drop_channels(raw_dbs.info['bads'])
-
-        # force annotations to stay within the actual time limits of the data
-        raw_dbs.annotations.crop(raw_dbs.times[0], raw_dbs.times[-1])
-
-        # crop out the time segments that were bad
-        raw_dbs.crop_by_annotations()
-        
+                
         reref_dir = os.path.join(REREF_DATA_ROOT, simplified_block_name)
         
         # save off cleaned data
@@ -135,9 +134,9 @@ if __name__ == "__main__":
         #     fiData_path_dbs = os.path.join(reref_dir, f"fiEEG_dbs_{simplified_block_name}.fif")
         #     raw_dbs.save(fiData_path_dbs, overwrite=True)
 
-        os.makedirs(reref_dir, exist_ok=True)
-        fiData_path_dbs = os.path.join(reref_dir, f"fiEEG_dbs_{simplified_block_name}.fif")
-        raw_dbs.save(fiData_path_dbs, overwrite=True)
+        # os.makedirs(reref_dir, exist_ok=True)
+        # fiData_path_dbs = os.path.join(reref_dir, f"fiEEG_dbs_{simplified_block_name}.fif")
+        # raw_dbs.save(fiData_path_dbs, overwrite=True)
 
         # common average reference the data
         probes = create_dbs_probes(raw_file=raw_dbs)
