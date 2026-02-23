@@ -1,10 +1,10 @@
-from utils.preprocessing_functions import *
+from src.preprocessing_functions import *
 import json
 
 # paths
 DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
 PROJECT_NAME = "CATDI"
-SBJ_NAME = "DBSTRD001" # Subject to process
+SBJ_NAME = "DBSTRD014" # Subject to process
 
 ORIGINAL_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'originalData', SBJ_NAME)
 DBS_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'dbsData', SBJ_NAME)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         raw_voltage_dbs = scale_to_volts(X_counts_dbs, ext_headers_dbs)
         info_dbs = mne.create_info(ch_names=dbs_chans, sfreq=fs, ch_types='dbs')
-        raw_dbs = mne.io.RawArray(raw_voltage_dbs, info_dbs, verbose=False, preload=True)
+        raw_dbs = mne.io.RawArray(raw_voltage_dbs, info_dbs, verbose=False)
         
         # downsample if necessary (should this go after filtering?)
         if fs > TARGET_SFREQ:
@@ -125,41 +125,29 @@ if __name__ == "__main__":
         # remove the bad chans if there are any
         if raw_dbs.info['bads']:
             raw_dbs.drop_channels(raw_dbs.info['bads'])
-                
-        reref_dir = os.path.join(REREF_DATA_ROOT, simplified_block_name)
-        
-        # save off cleaned data
-        # if not os.path.exists(reref_dir):
-        #     os.makedirs(reref_dir, exist_ok=True)
-        #     fiData_path_dbs = os.path.join(reref_dir, f"fiEEG_dbs_{simplified_block_name}.fif")
-        #     raw_dbs.save(fiData_path_dbs, overwrite=True)
-
-        # os.makedirs(reref_dir, exist_ok=True)
-        # fiData_path_dbs = os.path.join(reref_dir, f"fiEEG_dbs_{simplified_block_name}.fif")
-        # raw_dbs.save(fiData_path_dbs, overwrite=True)
 
         # common average reference the data
         probes = create_dbs_probes(raw_file=raw_dbs)
 
-        # # bipolar reference the data
-        # bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
-        # os.makedirs(bipolar_dir, exist_ok=True)
-        # save_bipolar_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "regular")
+        # bipolar reference the data
+        bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
+        os.makedirs(bipolar_dir, exist_ok=True)
+        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
 
         # bipolar alternating referencing for the data
         bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
         os.makedirs(bipolar_alternating_dir, exist_ok = True)
-        save_bipolar_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="alternating")
+        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
 
-        # # common average reference
-        # car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
-        # os.makedirs(car_dir, exist_ok=True)
-        # save_car_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir)
+        # common average reference
+        car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
+        os.makedirs(car_dir, exist_ok=True)
+        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir, mode="car")
 
-        # # esr -> averaging 
-        # esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
-        # os.makedirs(esr_dir, exist_ok = True)
-        # save_esr_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir)
+        # esr -> averaging 
+        esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
+        os.makedirs(esr_dir, exist_ok = True)
+        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir, mode="esr")
 
 
 

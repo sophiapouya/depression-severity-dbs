@@ -4,7 +4,7 @@ import mne
 import scipy.io as sio
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
-from .brpylib import NsxFile
+from .brpy.brpylib import NsxFile
 from scipy.signal import filtfilt, welch, firwin, convolve, find_peaks, decimate, hilbert
 import fnmatch
 import pandas as pd
@@ -95,47 +95,76 @@ def find_channels(channel_names, patterns):
     
     return dbs_chans, dbs_indices
 
-def save_bipolar_chans(probes, raw_data, block_name, save_dir, mode):
-    
-    ch_names = []
-    bp_chans = []
+def save_chans(probes, raw_data, block_name, save_dir, mode):  
+    ch_names, chans = [], []
+    avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
     for probe in probes:
-        avg_1, avg_2 = [], []
-        ch1, ch8 = None, None
-        for chan in probes[probe]:
-            prefix = chan.split("-")[0]
-            # average 2, 3, and 4
-            if prefix[-1] in ("2","3","4"):
-                avg_1.append(chan)
-            elif prefix[-1] in ("5","6","7"):
-                avg_2.append(chan)
-            elif prefix[-1] == "1":
-                ch1 = chan
-            elif prefix[-1] == "8": 
-                ch8 = chan
 
-        avg_1_total = raw_data.get_data(picks =avg_1).mean(axis=0)   # 1 channel, time series data
-        avg_2_total = raw_data.get_data(picks=avg_2).mean(axis=0)    # 1 channel, time series data
+        if (mode == "bipolar_alternating") or (mode == "bipolar_regular"):
+            avg_1, avg_2 = [], []
+            ch1, ch8 = None, None
 
-        if mode == "regular":
-            bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
-            bp2 = avg_1_total - avg_2_total
-            bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
-        elif mode == "alternating":
-            bp1 = raw_data.get_data(picks=ch1).flatten() - raw_data.get_data(picks=ch8).flatten()
-            bp2 = raw_data.get_data(picks=ch1).flatten() - avg_2_total
-            bp3 = avg_1_total - raw_data.get_data(picks=ch8).flatten()
-        ch_names.append(f"{probe}_1")
-        ch_names.append(f"{probe}_2")
-        ch_names.append(f"{probe}_3")
-        bp_chans.append(bp1)
-        bp_chans.append(bp2)
-        bp_chans.append(bp3)
-    bp_chans_arr = np.stack(bp_chans,axis=0)
+            for chan in probes[probe]:
+                prefix = chan.split("-")[0]
+                contact = int(prefix[-2:])
+                # average 2, 3, and 4
+                if contact in (2,3,4):
+                    avg_1.append(chan)
+                elif contact in (5,6,7):
+                    avg_2.append(chan)
+                elif contact ==1:
+                    ch1 = chan
+                elif contact == 8: 
+                    ch8 = chan
+            
+            # if any of the channels are not present, skip this session b/c there isn't enough data
+            if ch1 is None or ch8 is None or (len(avg_1) == 0) or (len(avg_2) == 0):
+                print(f"Skipping probe {probe} in {block_name} for bipolar channel since at least one channel is missing or excluded")
+                continue
+            
+            avg_1_total = raw_data.get_data(picks =avg_1).mean(axis=0)   # 1 channel, time series data
+            avg_2_total = raw_data.get_data(picks=avg_2).mean(axis=0)    # 1 channel, time series data
+
+            if mode == "bipolar_regular":
+                bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
+                bp2 = avg_1_total - avg_2_total
+                bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
+            elif mode == "bipolar_alternating":
+                bp1 = raw_data.get_data(picks=ch1).flatten() - raw_data.get_data(picks=ch8).flatten()
+                bp2 = raw_data.get_data(picks=ch1).flatten() - avg_2_total
+                bp3 = avg_1_total - raw_data.get_data(picks=ch8).flatten()
+            
+            ch_names.append(f"{probe}_1")
+            ch_names.append(f"{probe}_2")
+            ch_names.append(f"{probe}_3")
+            chans.append(bp1)
+            chans.append(bp2)
+            chans.append(bp3)
+
+        elif mode == "esr":
+            probe_chans = probes[probe]
+            probe_avg = raw_data.get_data(picks=probe_chans).mean(axis=0)
+            
+            for chan in probes[probe]:
+                prefix = chan.split("-")[0]
+                num = int(prefix[-2:])
+                esr_chan = raw_data.get_data(picks=chan).flatten() - probe_avg
+                ch_names.append(f"{probe}_{num}")
+                chans.append(esr_chan)
+
+        elif mode == "car":
+            for chan in probes[probe]:
+                car_ch = raw_data.get_data(picks=chan).flatten() - avg_ref
+                prefix = chan.split("-")[0]
+                num = int(prefix[-2:])
+                ch_names.append(f"{probe}_{num}")
+                chans.append(car_ch)
+
+    chans_arr = np.stack(chans,axis=0)
 
     # save the session level fif file
     info = mne.create_info(ch_names=ch_names, sfreq=raw_data.info['sfreq'], ch_types='dbs')
-    raw_bp=mne.io.RawArray(bp_chans_arr, info, verbose=False)
+    raw_bp=mne.io.RawArray(chans_arr, info, verbose=False)
 
     # deal with the annotations
     annotations = raw_data.annotations
@@ -159,30 +188,6 @@ def save_bipolar_chans(probes, raw_data, block_name, save_dir, mode):
     session_file_name = os.path.join(save_dir, f"{block_name}.fif")
     raw_bp.save(session_file_name, overwrite=True)
 
-
-def save_car_chans(probes, raw_data, block_name, save_dir):
-    avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
-
-    for probe in probes:
-        for chan in probes[probe]:
-            car_ch = raw_data.get_data(picks=chan).flatten() - avg_ref
-            num = chan.split("-")[0]
-            # save the car channel
-            car_file_name = os.path.join(save_dir, f"{block_name}_{probe}_carCh_{num[-1]}.npy")
-            np.save(car_file_name, car_ch)
-
-def save_esr_chans(probes, raw_data, block_name, save_dir):
-
-    for probe in probes:
-        probe_chans = probes[probe]
-        probe_avg = raw_data.get_data(picks=probe_chans).mean(axis=0)
-        for chan in probes[probe]:
-            num = chan.split("-")[0]
-            esr_chan = raw_data.get_data(picks=chan).flatten() - probe_avg
-            # save the esr chan
-            esr_file_name = os.path.join(save_dir, f"{block_name}_{probe}_esrCh_{num[-1]}.npy")
-            np.save(esr_file_name, esr_chan)
-
 def detect_line_noise_peaks(data, fs,
                              fmin=50.0,
                              fmax=500.0,
@@ -197,22 +202,22 @@ def detect_line_noise_peaks(data, fs,
     returns: 1D numpy array of peak frequencies in Hz
     """
 
-    # Use first channel as representative (line noise is global)
-    x = data[0, :]
-
     # Compute PSD
     f, Pxx = welch(
-        x,
+        data,
         fs=fs,
         window='hamming',
         nperseg=int(2 * fs),
         noverlap=int(fs),
         nfft=int(2 * fs),
     )
-    Pxx_db = 10 * np.log10(Pxx + 1e-20)
+
+    # collapse all channels to one "typical" channel for the session
+    Pxx_median = np.median(Pxx, axis=0)
+    Pxx_db = 10 * np.log10(Pxx_median + 1e-20)
 
     # Limit to desired frequency range
-    fmax = min(fmax, fs / 2.0 - 1.0)
+    fmax = min(fmax, fs / 2.0)
     band_mask = (f >= fmin) & (f <= fmax)
     f_band = f[band_mask]
     Pxx_band = Pxx_db[band_mask]
@@ -248,30 +253,6 @@ def create_dbs_probes(raw_file):
             probes[probe_name] = []
         probes[probe_name].append(ch)
     return probes
-
-def save_png(raw, filename, scaling):
-    with mne.viz.use_browser_backend('matplotlib'):
-        fig = raw.plot(
-            show=False,
-            n_channels=len(raw.ch_names),
-            duration=1000,
-            scalings=scaling,
-        )
-    fig.savefig(filename)  # e.g., "…/DBS_block01.png"
-
-def save_raw_voltages(master_block_dir, block_name, dbs_voltage, seeg_voltage):
-    os.makedirs(master_block_dir, exist_ok=True)
-    raw_vol_path_dbs = os.path.join(master_block_dir, f"RawVoltage_dbs_{block_name}.mat")
-    raw_vol_path_seeg = os.path.join(master_block_dir, f"RawVoltage_seeg_{block_name}.mat")
-    sio.savemat(raw_vol_path_dbs, {'RawVoltage': dbs_voltage}, do_compression=True)
-    sio.savemat(raw_vol_path_seeg, {'RawVoltage': seeg_voltage}, do_compression=True)
-
-def save_master_vars(master_block_dir, block_name, master_vars_dbs, master_vars_seeg):
-    os.makedirs(master_block_dir, exist_ok=True)
-    master_vars_path_dbs = os.path.join(master_block_dir, f"master_dbs_{block_name}.mat")
-    master_vars_path_seeg = os.path.join(master_block_dir, f"master_seeg_{block_name}.mat")
-    sio.savemat(master_vars_path_dbs, {'master_vars': master_vars_dbs}, oned_as='column')
-    sio.savemat(master_vars_path_seeg, {'master_vars': master_vars_seeg}, oned_as='column')
 
 def save_psd_session(path, raw_file, block_name, fs):
     
@@ -322,70 +303,6 @@ def save_psd_plots(pdf_path, raw_file, block_name, fs, rows=8, cols=4):
         fig.suptitle(f"PSD_{block_name}", fontsize=12)
         fig.tight_layout(pad=1.0)
         pdf.savefig(fig)
-
-    
-def save_power_data(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_type, subj_name, sbj_dir):
-    if ref_type == "bipolar":
-        working_dir = os.path.join(sbj_dir, "bipolar_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "car":
-        working_dir = os.path.join(sbj_dir, "car_channels")
-        power_dir = os.path.join(working_dir, "power_car")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "esr":
-        working_dir = os.path.join(sbj_dir, "esr_channels")
-        power_dir = os.path.join(working_dir, "power_esr")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "bipolar_alternating":
-        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
-        os.makedirs(power_dir, exist_ok=True)
-    
-
-    master_list = []
-    with os.scandir(working_dir) as files:
-        for file in files:
-            session_dict = {}
-            # make sure it's actually a file
-            if not file.name.endswith(".npy"):
-                continue
-
-            name, ext = os.path.splitext(file.name)
-            name_parts = name.split("_")
-            ch_num= name_parts[-1]
-            probe_name = name_parts[-3]
-            session_name = "_".join(name_parts[:-3])
-            probe_ch_num = probe_name + "_" + ch_num
-            
-            # check if it's an excluded session
-            if session_name in EXCLUDED_SESSIONS[subj_name]:
-                continue
-
-            session_dict["session"] = session_name
-            session_dict["probe"] = probe_name
-            session_dict["ch_name"] = probe_ch_num
-
-            bipolar_data = np.load(file.path)
-            
-            #downsample the data
-            bipolar_data=decimate(bipolar_data,2)
-            
-            for band, values in FEATURE_BANDS.items():
-        
-                b,a = band_coefficients[band]
-                band_data = filtfilt(b,a,bipolar_data)
-                analytic_signal = hilbert(band_data)
-                power = (np.abs(analytic_signal))**2
-                log_power=np.log10(power)
-                avg_log_power= np.mean(log_power)
-                session_dict[band] = avg_log_power
-
-            #append session dictionary to master list
-            master_list.append(session_dict)
-            
-    df = pd.DataFrame(master_list)
-    df.to_csv(os.path.join(power_dir,f"{subj_name}_{ref_type}_power.csv"))
 
 def save_power_data_from_fif(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_type, subj_name, sbj_dir):
     if ref_type == "bipolar":
@@ -533,73 +450,4 @@ def save_power_data_from_fif(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS
     df = pd.DataFrame(master_list)
     df.to_csv(os.path.join(power_dir, f"{subj_name}_{ref_type}_power.csv"), index=False)
 
-
-def save_fif_chans(ref_type, sbj_dir, subj_name, EXCLUDED_SESSIONS):
-    if ref_type == "bipolar":
-        working_dir = os.path.join(sbj_dir, "bipolar_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "car":
-        working_dir = os.path.join(sbj_dir, "car_channels")
-        power_dir = os.path.join(working_dir, "power_car")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "esr":
-        working_dir = os.path.join(sbj_dir, "esr_channels")
-        power_dir = os.path.join(working_dir, "power_esr")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "bipolar_alternating":
-        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
-        os.makedirs(power_dir, exist_ok=True)
-    
-    # create output directory for py_neuromod files
-    py_neuro_dir = os.path.join(sbj_dir,"py_neuro_files")
-    os.makedirs(py_neuro_dir, exist_ok=True)
-
-    with os.scandir(working_dir) as files:
-        session_info = {}
-        for file in files:
-            # make sure it's actually a file
-            if not file.name.endswith(".npy"):
-                continue
-
-            name, ext = os.path.splitext(file.name)
-            name_parts = name.split("_")
-            ch_num= name_parts[-1]
-            probe_name = name_parts[-3]
-            session_name = "_".join(name_parts[:-3])
-            probe_ch_num = probe_name + "_" + ch_num
-            
-            # check if it's an excluded session
-            if session_name in EXCLUDED_SESSIONS[subj_name]:
-                continue
-
-            # load the file
-            bipolar_data = np.load(file.path)
-            
-            #downsample the data
-            bipolar_data=decimate(bipolar_data,2)
-
-            # if the category doesn't exist, create it:
-            if session_name not in session_info:
-                session_info[session_name] = {'data': [], 'ch_names': []}
-            
-            # load the time series for the data category
-            session_info[session_name]['data'].append(bipolar_data)
-            session_info[session_name]['ch_names'].append(probe_ch_num)
-
-    
-    for session_name, category_data in session_info.items():
-        # create the time series for the session (channels x time points)
-        session_data = np.array(category_data['data'])
-
-        # create the session info (the channel names)
-        info = mne.create_info(ch_names=category_data['ch_names'], sfreq=1000)
-
-        # create the pynm mne object
-        pynm_raw_obj = mne.io.RawArray(session_data, info)
-
-        # save as a fif file
-        save_path = os.path.join(py_neuro_dir, f'{session_name}_pynm.fif')
-        pynm_raw_obj.save(save_path, overwrite=True)
 

@@ -7,13 +7,14 @@ dbs_preprocessing.py
    - notch filters raw data (find_peaks from scipy.signal)
    - visual data inspection to remove bad artifacts or bad channels
    - saves json of visual inspection (bad channels and/or bad artifacts)
-   - saves cleaned raw data as a fif file
+   - removes the channels marked as bad
    - performs the following referencing methods
       - bipolar
       - alternating bipolar
       - esr
       - car
-   - saves the output of the referencing methods as individual npy files per session per contact 
+   - saves the output of the referencing methods as session level fif which contains (if any) the artifact times in the annotations 
+   
 
 ## Feature Extraction
 dbs_power.py
@@ -29,6 +30,12 @@ dbs_power.py
        - low gamma: 35-50 hz
        - high gamma: 70-150 hz
 
+feature_exactraction.py
+  - calculates a range of features using the pyneuromodulation package
+  - calculates features on chunks of data and averages over sessions
+  - returns a master CSV of all session, patients, and features
+
+## Regression
 
 ## Correlation
 catdi_correlation.py 
@@ -36,10 +43,11 @@ catdi_correlation.py
   - plots correlation per patient 
 
 
-## Utilities
-utils/
-  - brMiscFxns.py & brpylib.py -> Blackrock python files (edits made to brpy library, required to function correctly) 
-  - preprocessing_functions.py -> functions from preprocessing and feature extraction stored here
+## Source
+src/
+  - brpy/
+    - brMiscFxns.py & brpylib.py -> Blackrock python files (edits made to brpy library, required to function correctly) 
+  - preprocessing_functions.py -> functions used in dbs_preprocessing.py stored here 
   - inspect_npy.py -> inspecting a single npy file
   - inspect_fif.py -> inspecting a single fif file
 
