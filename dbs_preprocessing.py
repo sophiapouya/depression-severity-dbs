@@ -1,10 +1,12 @@
-from src.preprocessing_functions import *
+from src.preprocessing_functions import create_nsx_file_list, load_blackrock_data, scale_to_volts, find_channels, save_chans, detect_line_noise_peaks, create_dbs_probes
 import json
+import mne
+import os
 
 # paths
 DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
 PROJECT_NAME = "CATDI"
-SBJ_NAME = "DBSTRD014" # Subject to process
+SBJ_NAME = "DBSTRD001" # Subject to process
 
 ORIGINAL_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'originalData', SBJ_NAME)
 DBS_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'dbsData', SBJ_NAME)
@@ -19,7 +21,7 @@ PLOTTING_SCALE = 200e-6
 TARGET_SFREQ = 2000  
 
 # flags
-OVERWRITE = False
+OVERWRITE = True
  
 # main loop
 if __name__ == "__main__":

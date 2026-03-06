@@ -1,23 +1,13 @@
 import os
 import numpy as np
 import mne
-import scipy.io as sio
-from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib.pyplot as plt
 from .brpy.brpylib import NsxFile
-from scipy.signal import filtfilt, welch, firwin, convolve, find_peaks, decimate, hilbert
+from scipy.signal import welch, find_peaks
 import fnmatch
-import pandas as pd
-
-
-def _get(d, keys, default=None):
-    for k in keys:
-        if k in d and d[k] is not None:
-            return d[k]
-    return default
+from typing import Any, Literal
 
 # create list of nsx files (ns3 if it exists, ns5 if there is no ns3 file)
-def create_nsx_file_list(data_path):    #data path assumed format: original_data_root/session_folder/files
+def create_nsx_file_list(data_path: str) -> list[str]:    #data path assumed format: original_data_root/session_folder/files
     file_list = []  # create a final list of files to process
 
     for directory, sessions, files in os.walk(data_path): 
@@ -38,7 +28,15 @@ def create_nsx_file_list(data_path):    #data path assumed format: original_data
 
     return file_list
 
-def load_blackrock_data(nsx_path):
+# helper function for loading blackrock data
+def _get(d: dict[str, Any], keys: list[str]) -> Any | None:
+    for k in keys:
+        if k in d and d[k] is not None:
+            return d[k]
+    return None
+
+# load time series blackrock data
+def load_blackrock_data(nsx_path: str) -> tuple[np.ndarray, list[str], float, list[dict[str, Any]], list[int]]:
     nsx = NsxFile(nsx_path)
     basic_header = getattr(nsx, "basic_header", {}) or {}
     period = basic_header.get("Period", basic_header.get("period"))
@@ -52,7 +50,8 @@ def load_blackrock_data(nsx_path):
     nsx.close()
     return X_counts, ch_names_all, fs, ext_headers, original_elec_ids
 
-def scale_to_volts(X_counts, ext_headers):
+# scale the time series correctly to volts
+def scale_to_volts(X_counts: np.ndarray, ext_headers: list[dict[str, Any]]) -> np.ndarray:
     n_ch = X_counts.shape[0]
     X = X_counts.astype(np.float32, copy=True)
     if not ext_headers or len(ext_headers) < n_ch:
@@ -80,14 +79,15 @@ def scale_to_volts(X_counts, ext_headers):
         X[i] = X[i] * scales[i] + offsets[i]
         X[i] = X[i] * post_mul[i]
     return X
-       
-def find_channels(channel_names, patterns):
+
+# find the dbs channel names and indices       
+def find_channels(channel_names: list[str], patterns: list[str]) -> tuple[list[str], list[int]]:
     dbs_chans = []
     dbs_indices = []
     for index, ch in enumerate(channel_names):
         # clean up the names
         ch_cleaned=ch.upper()
-        ch_cleaned=ch.lower()
+        ch_cleaned=ch_cleaned.lower()
         for pat in patterns:
             if fnmatch.fnmatch(ch_cleaned, pat):
                 dbs_chans.append(ch)
@@ -95,7 +95,8 @@ def find_channels(channel_names, patterns):
     
     return dbs_chans, dbs_indices
 
-def save_chans(probes, raw_data, block_name, save_dir, mode):  
+# reference and save the channels as a fif file
+def save_chans(probes: dict[str, list[str]], raw_data: mne.io.BaseRaw, block_name: str, save_dir: str, mode: Literal["bipolar_alternating", "bipolar_regular", "esr", "car"]) -> None:  
     ch_names, chans = [], []
     avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
     for probe in probes:
@@ -188,20 +189,12 @@ def save_chans(probes, raw_data, block_name, save_dir, mode):
     session_file_name = os.path.join(save_dir, f"{block_name}.fif")
     raw_bp.save(session_file_name, overwrite=True)
 
-def detect_line_noise_peaks(data, fs,
+# detect line noise for further filtering for each session
+def detect_line_noise_peaks(data: np.ndarray, fs: float,
                              fmin=50.0,
                              fmax=500.0,
                              prominence_db=10.0,
-                             min_distance_hz=20.0):
-    """
-    Detect narrow, high-power peaks (line noise / harmonics) in the PSD
-    of band-passed data.
-
-    data: ndarray, shape (n_channels, n_samples)
-    fs:   sampling frequency
-    returns: 1D numpy array of peak frequencies in Hz
-    """
-
+                             min_distance_hz=20.0) -> np.ndarray:
     # Compute PSD
     f, Pxx = welch(
         data,
@@ -236,12 +229,13 @@ def detect_line_noise_peaks(data, fs,
 
     peak_freqs = f_band[peak_inds]
 
-    # Optional: round a bit so they're nice numbers
+    # round a bit so they're nice numbers
     peak_freqs = np.round(peak_freqs, 1)
 
     return peak_freqs
 
-def create_dbs_probes(raw_file):
+# create a list of dbs probes with clean names
+def create_dbs_probes(raw_file: mne.io.BaseRaw) -> dict[str, list[str]]:
     probes = {}
     for ch in raw_file.ch_names:
         prefix = ch.split("-")[0]
@@ -253,201 +247,3 @@ def create_dbs_probes(raw_file):
             probes[probe_name] = []
         probes[probe_name].append(ch)
     return probes
-
-def save_psd_session(path, raw_file, block_name, fs):
-    
-    psds = []
-    for ch in raw_file.ch_names:
-        voltage = raw_file.get_data(picks=ch)[0]
-        f, Pxx = welch(voltage, fs=fs, 
-                    window='hamming', 
-                    nperseg=int(2*fs),   # 2 second window
-                    noverlap=int(fs),   # 50% overlap
-                    nfft = int(2*fs))
-        Pxx_db = 10 *np.log10(Pxx)
-        psds.append(Pxx_db)
-    
-    psd_arr = np.array(psds)
-    avg_psd = np.average(psd_arr, axis=0)
-    fig, ax = plt.subplots(1, 1, figsize=(8,6))
-    ax.plot(f, avg_psd)
-    ax.set_title(f"Average PSD for {block_name}")
-    ax.set_xlabel("Frequency (Hz)")
-    ax.set_xlim(0, 500)
-    ax.set_ylabel("Power (dB)")
-    fig.savefig(path)
-    plt.close(fig)
-    
-
-def save_psd_plots(pdf_path, raw_file, block_name, fs, rows=8, cols=4):
-    with PdfPages(pdf_path) as pdf:
-
-        fig, axes = plt.subplots(rows, cols, figsize=(20,20))
-        axes = axes.ravel()
-
-        for dbs_ch, ax in zip(raw_file.ch_names, axes):
-            
-            voltage = raw_file.get_data(picks=dbs_ch)[0]
-            f, Pxx = welch(voltage, fs=fs, 
-                        window='hamming', 
-                        nperseg=int(2*fs),   # 2 second window
-                        noverlap=int(fs),   # 50% overlap
-                        nfft = int(2*fs))
-            Pxx_db = 10*np.log10(Pxx)
-            ax.plot(f, Pxx_db)
-            ax.set_title(dbs_ch, fontsize=8)
-            ax.set_xlabel("Hz", fontsize=6)
-            ax.set_xlim(0,500)
-            ax.set_ylabel("Power (dB)", fontsize=6)
-
-        fig.suptitle(f"PSD_{block_name}", fontsize=12)
-        fig.tight_layout(pad=1.0)
-        pdf.savefig(fig)
-
-def save_power_data_from_fif(band_coefficients, FEATURE_BANDS, EXCLUDED_SESSIONS, ref_type, subj_name, sbj_dir):
-    if ref_type == "bipolar":
-        working_dir = os.path.join(sbj_dir, "bipolar_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "car":
-        working_dir = os.path.join(sbj_dir, "car_channels")
-        power_dir = os.path.join(working_dir, "power_car")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "esr":
-        working_dir = os.path.join(sbj_dir, "esr_channels")
-        power_dir = os.path.join(working_dir, "power_esr")
-        os.makedirs(power_dir, exist_ok=True)
-    elif ref_type == "bipolar_alternating":
-        working_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
-        power_dir = os.path.join(working_dir, "power_bipolar_alternating")
-        os.makedirs(power_dir, exist_ok=True)
-    
-    # window settings
-    SFREQ = 1000
-    WINDOW_S = 2.0
-    STEP_S = 1.0
-    WINDOW_SAMPLES = int(WINDOW_S * SFREQ)
-    STEP_SAMPLES = int(STEP_S * SFREQ)
-
-    master_list = []
-    with os.scandir(working_dir) as files:
-        for file in files:
-            session_dict = {}
-            # make sure it's a fif file
-            if not file.name.endswith(".fif"):
-                continue
-
-            session_name = os.path.splitext(file.name)[0]
-
-            if session_name in EXCLUDED_SESSIONS[subj_name]:
-                continue
-
-            file_path = file.path
-
-            raw = mne.io.read_raw_fif(file_path, preload=True, verbose=False)
-
-            data = raw.get_data()
-            ch_names = raw.ch_names
-
-            total_time_s = raw.times[-1]
-            n_samples = data.shape[1]
-
-            # bad intervals list
-            bads = []
-            for onset, duration, desc in zip(raw.annotations.onset,
-                                             raw.annotations.duration,
-                                             raw.annotations.description):
-                if str(desc) == "BAD_artifact":
-                    bads.append((float(onset), float(onset + duration)))
-            
-            bads = sorted(bads, key=lambda x: x[0])
-
-            # good intervals list
-            goods = []
-            current = 0.0
-
-            for bad_start, bad_end in bads:
-                if bad_start > current:
-                    goods.append((current, bad_start))
-                current = bad_end
-
-            if current < total_time_s:
-                goods.append((current, total_time_s))
-
-            # If there were no BAD annotations, goods = whole session
-            if len(bads) == 0:
-                goods = [(0.0, total_time_s)]
-
-            # Keep only good intervals that can fit at least ONE full window
-            usable_goods = []
-            for g_start, g_end in goods:
-                if (g_end - g_start) >= WINDOW_S:
-                    usable_goods.append((g_start, g_end))
-
-            if len(usable_goods) == 0:
-                # no usable data after artifact removal
-                continue
-
-            # Per channel power calc
-            for ch_idx, ch in enumerate(ch_names):
-
-                probe_name = ch.split("_")[0]
-
-                session_dict = {
-                    "session": session_name,
-                    "probe": probe_name,
-                    "ch_name": ch
-                }
-                x = data[ch_idx, :]
-
-                for band in FEATURE_BANDS.keys():
-
-                    b, a = band_coefficients[band]
-                    window_means = []
-
-                    # loop over each good interval
-                    for g_start_s, g_end_s in usable_goods:
-
-                        start_sample = int(np.round(g_start_s * SFREQ))
-                        end_sample = int(np.round(g_end_s * SFREQ))
-
-                        # make sure bounds are valid
-                        start_sample = max(0, start_sample)
-                        end_sample = min(n_samples, end_sample)
-
-                        interval_len = end_sample - start_sample
-                        n_windows = (interval_len - WINDOW_SAMPLES) // STEP_SAMPLES + 1
-
-                        if n_windows == 0:
-                            continue
-                        
-                        x_interval = x[start_sample:end_sample]
-                        band_data = filtfilt(b, a, x_interval)
-
-                        for w in range(n_windows):
-                            s = w * STEP_SAMPLES
-                            e = s + WINDOW_SAMPLES
-
-                            segment = band_data[s:e]
-
-                            # Safety: skip if window isn't full length
-                            if segment.shape[0] != WINDOW_SAMPLES:
-                                continue
-
-                            analytic = hilbert(segment)
-                            power = np.abs(analytic) ** 2
-                            log_power = np.log10(power)
-                            window_means.append(np.mean(log_power))
-
-                    # If a channel/band has no windows (should be rare), store NaN
-                    if len(window_means) == 0:
-                        session_dict[band] = np.nan
-                    else:
-                        session_dict[band] = float(np.mean(window_means))
-
-                master_list.append(session_dict)
-
-    df = pd.DataFrame(master_list)
-    df.to_csv(os.path.join(power_dir, f"{subj_name}_{ref_type}_power.csv"), index=False)
-
-
