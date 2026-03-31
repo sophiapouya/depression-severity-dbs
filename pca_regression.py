@@ -17,14 +17,39 @@ model_choice = "OLS"    # choices: "RIDGE", "OLS"
 # cv method
 cv_choice = "LOO"     # choices: "KFOLD", "LOO"
 
+# exclude probes
+included_probes = "LVCVS"   # choices: "LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"
+
 # define input csv
 base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
 csv_path = os.path.join(base_dir, "CATDI_master_features.csv")
 all_patient_df = pd.read_csv(csv_path)
 
 # remove columns that aren't features 
-columns_to_exclude = ['session_name', 'time']
+columns_to_exclude = ['time']
 clean_df =all_patient_df.drop(columns_to_exclude, axis=1)
+
+# decode on specific regions
+if included_probes == "ALL":
+    clean_df=clean_df
+elif included_probes == "LEFT":
+    columns_to_drop = [col for col in clean_df.columns if ("RS" in col) or ("RV" in col)]
+    clean_df = clean_df.drop(columns=columns_to_drop)
+elif included_probes == "RIGHT":
+    columns_to_drop = [col for col in clean_df.columns if ("LS" in col) or ("LV" in col)]
+    clean_df = clean_df.drop(columns=columns_to_drop)
+elif included_probes == "SCC":
+    columns_to_drop = [col for col in clean_df.columns if ("VCVS" in col)]
+    clean_df = clean_df.drop(columns=columns_to_drop)
+elif included_probes == "VCVS":
+    columns_to_drop = [col for col in clean_df.columns if ("SCC" in col)]
+    clean_df = clean_df.drop(columns=columns_to_drop)
+else:
+    columns_to_keep = [col for col in clean_df.columns if included_probes in col]
+    columns_to_keep.append("catdi_score")
+    columns_to_keep.append("patient_id")
+    columns_to_keep.append("session_name")
+    clean_df = clean_df[columns_to_keep]
 
 # list for keeping track of performance for output csv
 performance_metrics = []
@@ -36,10 +61,11 @@ decoding_plot_info = []
 # go through each patient
 for patient in clean_df['patient_id'].unique():
     patient_df = clean_df[clean_df['patient_id'] == patient]
+    session_names = patient_df["session_name"]
     catdi_scores = patient_df['catdi_score']
 
     # remove catdi and patient id columns 
-    patient_df = patient_df.drop(['patient_id','catdi_score'], axis=1)
+    patient_df = patient_df.drop(['patient_id','catdi_score','session_name'], axis=1)
     
     # implement 70% cutoff-> 70% of sessions need a value for a feature to be analyzed
     sessions= patient_df.shape[0]
@@ -78,7 +104,7 @@ for patient in clean_df['patient_id'].unique():
         data_test_transformed= scaler.transform(data_test)
 
         # perform pca -> as many pcs to explain 90% variance in the data
-        pca = PCA(0.9)
+        pca = PCA(0.90)
         # fit the pca to the training data only
         pca.fit(data_train_transformed)
         pc_scores_train = pca.transform(data_train_transformed)
@@ -134,21 +160,21 @@ for patient in clean_df['patient_id'].unique():
                                 "mse": mse_val,
                                 "r_val": r_val,
                                 "p_val":p_val,
-                                "r2": r2_score,
+                                "r2": r2,
                                 "pcs": pca.n_components_,
                                 "total_sessions": len(catdi_scores)})
 
 # output stats to csv
 output_dir = os.path.join(base_dir,"pca")
 os.makedirs(output_dir, exist_ok=True)
-csv = os.path.join(output_dir,f"pca_{model_choice}_{cv_choice}.csv")
+csv = os.path.join(output_dir,f"pca_{model_choice}_{cv_choice}_{included_probes}_probes.csv")
 performance_df = pd.DataFrame(performance_metrics)
 performance_df.to_csv(csv, index=False)
 
 # output figure for all patients 
-fig_path = os.path.join(output_dir, f"{model_choice}_{cv_choice}_decoding_results.png")
+fig_path = os.path.join(output_dir, f"{model_choice}_{cv_choice}_{included_probes}_probes_decoding_results.png")
 
-fig, axes = plt.subplots(3,2,figsize=(8,10))
+fig, axes = plt.subplots(2,3,figsize=(10,6))
 axes = axes.flatten()   # 1 through 6 instead of the grid
 
 for index, dict in enumerate(decoding_plot_info):
@@ -167,11 +193,11 @@ for index, dict in enumerate(decoding_plot_info):
     axes[index].text(.10,.80,f"R={r_val:.2f} \nP={p_val:.4}",transform=axes[index].transAxes)
     axes[index].set_xlabel('Measured CATDI')
     axes[index].set_ylabel('Predicted CATDI')
-    axes[index].set_title(f'{model_choice} on PCs with {cv_choice} for {dict['patient_id']}')
+    axes[index].set_title(f'{dict['patient_id']}')
 
 fig.tight_layout()
 fig.savefig(fig_path)
-plt.show()
+plt.close()
 
 
         
