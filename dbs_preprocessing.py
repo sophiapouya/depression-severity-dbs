@@ -1,4 +1,4 @@
-from src.preprocessing_functions import create_nsx_file_list, load_blackrock_data, scale_to_volts, find_channels, save_chans, detect_line_noise_peaks, create_dbs_probes
+from src.preprocessing_functions import create_nsx_file_list, load_blackrock_data, scale_to_volts, find_dbs_channels, save_dbs_chans, detect_line_noise_peaks, create_dbs_probes
 import json
 import mne
 import os
@@ -41,7 +41,7 @@ if __name__ == "__main__":
             continue    
 
         # use just the dbs leads for now
-        dbs_chans, dbs_indices = find_channels(channel_names=ch_names_all, patterns=DBS_CHANNEL_PATTERNS)
+        dbs_chans, dbs_indices = find_dbs_channels(channel_names=ch_names_all, patterns=DBS_CHANNEL_PATTERNS)
         
         ext_headers_dbs = [ext_headers_all[i] for i in dbs_indices]
         X_counts_dbs = X_counts[dbs_indices,:]
@@ -134,22 +134,22 @@ if __name__ == "__main__":
         # bipolar reference the data
         bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
         os.makedirs(bipolar_dir, exist_ok=True)
-        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
+        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
 
         # bipolar alternating referencing for the data
         bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
         os.makedirs(bipolar_alternating_dir, exist_ok = True)
-        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
+        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
 
         # common average reference
         car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
         os.makedirs(car_dir, exist_ok=True)
-        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir, mode="car")
+        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir, mode="car")
 
         # esr -> averaging 
         esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
         os.makedirs(esr_dir, exist_ok = True)
-        save_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir, mode="esr")
+        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir, mode="esr")
 
 
 

@@ -6,6 +6,19 @@ import pprint
 import numpy as np
 
 
+EXCLUDED_SESSIONS = {
+    "DBSTRD001": ["CATDI_run-08_blk-04", "CATDI_run-09_blk-01", "CATDI_run-08_blk-01","CATDI_run-08_blk-04","CATDI_run-09_blk-01"],
+    "DBSTRD002": ["CATDI_run-Day6_blk-02", "CATDI_run-Day7_blk-02","CATDI_run-Day5_blk-03"],
+    "DBSTRD006": ["CATDI_date-02-14-2022_time-08-34-02"],
+    "DBSTRD008": ["CATDI_date-10-25-2022_time-14-50-44", "CATDI_date-10-26-2022_time-14-58-43", "CATDI_date-10-25-2022_time-08-23-49", 
+                  "CATDI_date-10-24-2022_time-14-42-53", "CATDI_date-10-24-2022_time-12-27-04", "CATDI_date-10-25-2022_time-20-20-50", 
+                  "CATDI_date-10-25-2022_time-16-51-50", "CATDI_date-10-24-2022_time-17-01-51", "CATDI_date-10-25-2022_time-13-42-28",
+                  "CATDI_date-10-25-2022_time-11-27-18", "CATDI_date-10-24-2022_time-13-50-41", "CATDI_date-10-24-2022_time-10-57-12" ],
+    "DBSTRD010": ["CATDI_date-05-14-2023_time-16-06-29","CATDI_date-05-13-2023_time-12-40-05","CATDI_date-05-13-2023_time-11-39-07"],
+    "DBSTRD011": ["CATDI_date-20240717_time-135720", "CATDI_date-20240720_time-121427", "CATDI_date-20240723_time-183759"],
+    "DBSTRD014": []
+}
+
 # default template setttings
 settings = nm.get_default_settings()
 
@@ -33,6 +46,9 @@ settings["features"]["sharpwave_analysis"] = True
 settings["features"]["coherence"] = True
 settings["features"]["fooof"] = True 
 
+# FFT settings
+settings["fft_settings"]["windowlength_ms"] = 2000
+
 # FOOOF settings
 settings["fooof_settings"]["knee"] = False  # This is being ignored due to bug
 settings["fooof_settings"]["aperiodic"]["knee"] = False  # Try this too
@@ -47,7 +63,7 @@ settings["features"]["bursts"] = False  # leaving false for now b/c don't know h
 # settings["burst_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']  # Which bands to analyze
 
 # sharpwave settings
-settings["sharpwave_analysis_settings"]["filter_ranges_hz"] = [[12, 30]]
+settings["sharpwave_analysis_settings"]["filter_ranges_hz"] = [[12, 30], [70,150]]
 settings["sharpwave_analysis_settings"]["estimator"]["mean"] = ['interval', 'prominence', 'sharpness']
 
 # coherence   
@@ -72,9 +88,6 @@ all_session_results = []
 for subj in all_subjs:
     sbj_dir = os.path.join(base_dir,subj)
     fif_dir = os.path.join(sbj_dir, "bipolar_alternating_channels")
-    
-    # all features for one patient
-    subj_features = []
 
     # bring in the catdi scores
     catdi_excel = pd.read_excel(catdi_scores_excel, sheet_name=subj)
@@ -88,6 +101,11 @@ for subj in all_subjs:
         if file.endswith(".fif"):
             # average session data
             sesh = os.path.splitext(file)[0]
+            
+            # skip over the session if it's excluded 
+            if sesh in EXCLUDED_SESSIONS[subj]:
+                continue
+
             score_row = catdi_excel.loc[catdi_excel["session"] == sesh]
 
             # skip over file if it doesn't have a catdi score
