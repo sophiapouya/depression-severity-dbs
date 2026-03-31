@@ -1,0 +1,6 @@
+# don't track bytecode
+__pycache__/
+
+# don't track any folders or files starting with . 
+.*
+.*/
