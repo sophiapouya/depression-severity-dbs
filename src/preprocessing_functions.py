@@ -5,6 +5,7 @@ from .brpy.brpylib import NsxFile
 from scipy.signal import welch, find_peaks
 import fnmatch
 from typing import Any, Literal
+import re
 
 # create list of nsx files (ns3 if it exists, ns5 if there is no ns3 file)
 def create_nsx_file_list(data_path: str) -> list[str]:    #data path assumed format: original_data_root/session_folder/files
@@ -81,22 +82,48 @@ def scale_to_volts(X_counts: np.ndarray, ext_headers: list[dict[str, Any]]) -> n
     return X
 
 # find the dbs channel names and indices       
-def find_channels(channel_names: list[str], patterns: list[str]) -> tuple[list[str], list[int]]:
+def find_dbs_channels(channel_names: list[str], patterns: list[str]) -> tuple[list[str], list[int]]:
     dbs_chans = []
     dbs_indices = []
     for index, ch in enumerate(channel_names):
         # clean up the names
         ch_cleaned=ch.upper()
         ch_cleaned=ch_cleaned.lower()
+        found = False
         for pat in patterns:
             if fnmatch.fnmatch(ch_cleaned, pat):
                 dbs_chans.append(ch)
                 dbs_indices.append(index)
-    
+                found = True
+            if found:
+                break
+
     return dbs_chans, dbs_indices
 
-# reference and save the channels as a fif file
-def save_chans(probes: dict[str, list[str]], raw_data: mne.io.BaseRaw, block_name: str, save_dir: str, mode: Literal["bipolar_alternating", "bipolar_regular", "esr", "car"]) -> None:  
+# find the seeg channel names and indices       
+def find_seeg_channels(
+    channel_names: list[str], patterns: list[str]
+) -> tuple[list[str], list[int]]:
+    seeg_chans = []
+    seeg_indices = []
+    for index, ch in enumerate(channel_names):
+        # clean up the names
+        ch_cleaned=ch.lower()
+        found = False
+        for pat in patterns:
+            if fnmatch.fnmatch(ch_cleaned, pat):
+                found = True
+                break
+        if not found:
+            seeg_chans.append(ch)
+            seeg_indices.append(index)
+
+    return seeg_chans, seeg_indices
+
+# reference and save the dbs channels as a fif file
+def save_dbs_chans(
+    probes: dict[str, list[str]], raw_data: mne.io.BaseRaw, block_name: str, save_dir: str, mode: Literal["bipolar_alternating", "bipolar_regular", "esr", "car"]
+) -> None:  
     ch_names, chans = [], []
     avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
     for probe in probes:
@@ -189,6 +216,54 @@ def save_chans(probes: dict[str, list[str]], raw_data: mne.io.BaseRaw, block_nam
     session_file_name = os.path.join(save_dir, f"{block_name}.fif")
     raw_bp.save(session_file_name, overwrite=True)
 
+# reference and save the seeg channels as a fif file
+def save_seeg_chans(
+    probes: dict[str, list[str]], 
+    raw_data: mne.io.BaseRaw, 
+    block_name: str, 
+    save_dir: str,
+) -> None:  
+   
+    ch_names, chans_arr = bipolar_seeg(raw_data=raw_data, probes=probes)
+
+    # save the session level fif file
+    info = mne.create_info(ch_names=ch_names, sfreq=raw_data.info['sfreq'], ch_types='seeg')
+    raw_seeg=mne.io.RawArray(chans_arr, info, verbose=False)
+
+    # downsample to 1000hz 
+    raw_seeg.resample(1000)
+    
+    # save as fif file
+    session_file_name = os.path.join(save_dir, f"{block_name}.fif")
+    raw_seeg.save(session_file_name, overwrite=True)
+    
+# bipolar referencing for seeg contacts
+def bipolar_seeg(
+    *, 
+    probes: dict[str, list[str]], 
+    raw_data: mne.io.BaseRaw,
+) -> tuple[list, np.ndarray]:
+    
+    chan_names, chans_data = [], []
+
+    # pre pull the data
+    data = raw_data.get_data()
+    ch_to_idx = {ch:index for index, ch in enumerate(raw_data.ch_names)}
+
+    for probe_name, probe_channels in probes.items():
+        sorted_chans = sorted(probe_channels, key = lambda ch: int(ch.split("-")[-1]))
+        for i in range(len(sorted_chans) -1):
+            chan_1 = data[ch_to_idx[sorted_chans[i]]]
+            chan_2 = data[ch_to_idx[sorted_chans[i+1]]]
+            chan_name = f"{probe_name}_{i+2}-{i+1}"
+            chan_data = chan_2 - chan_1
+            chan_names.append(chan_name)
+            chans_data.append(chan_data)
+    
+    chans_data_arr = np.stack(chans_data, axis=0)
+    return chan_names, chans_data_arr
+
+
 # detect line noise for further filtering for each session
 def detect_line_noise_peaks(data: np.ndarray, fs: float,
                              fmin=50.0,
@@ -234,7 +309,7 @@ def detect_line_noise_peaks(data: np.ndarray, fs: float,
 
     return peak_freqs
 
-# create a list of dbs probes with clean names
+# create a dictionary of dbs probes with clean names
 def create_dbs_probes(raw_file: mne.io.BaseRaw) -> dict[str, list[str]]:
     probes = {}
     for ch in raw_file.ch_names:
@@ -246,4 +321,18 @@ def create_dbs_probes(raw_file: mne.io.BaseRaw) -> dict[str, list[str]]:
         if probe_name not in probes:
             probes[probe_name] = []
         probes[probe_name].append(ch)
+    return probes
+
+# create a dictionary of seeg probes with clean names
+def create_seeg_probes(
+    raw_file: mne.io.BaseRaw
+) -> dict[str, list[str]]:
+    probes = {}
+    for channel in raw_file.ch_names:
+        match = re.match(r"^[^\d]+", channel)
+        probe_prefix = match.group(0)
+        if probe_prefix not in probes:
+            probes[probe_prefix] = []
+        
+        probes[probe_prefix].append(channel)
     return probes
