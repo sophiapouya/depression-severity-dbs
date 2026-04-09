@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import pearsonr 
 import matplotlib.pyplot as plt
+import math
 
 # regression model
 model_choice = "OLS"    # choices: "RIDGE", "OLS"
@@ -18,11 +19,11 @@ model_choice = "OLS"    # choices: "RIDGE", "OLS"
 cv_choice = "LOO"     # choices: "KFOLD", "LOO"
 
 # exclude probes
-included_probes = "LVCVS"   # choices: "LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"
+included_probes = "ALL"   # choices: "LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"
 
 # define input csv
 base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
-csv_path = os.path.join(base_dir, "CATDI_master_features.csv")
+csv_path = os.path.join(base_dir, "CATDI_master_features_with_coherence.csv")
 all_patient_df = pd.read_csv(csv_path)
 
 # remove columns that aren't features 
@@ -167,14 +168,17 @@ for patient in clean_df['patient_id'].unique():
 # output stats to csv
 output_dir = os.path.join(base_dir,"pca")
 os.makedirs(output_dir, exist_ok=True)
-csv = os.path.join(output_dir,f"pca_{model_choice}_{cv_choice}_{included_probes}_probes.csv")
+csv = os.path.join(output_dir,f"SEEG_pca_{model_choice}_{cv_choice}_{included_probes}_probes.csv")
 performance_df = pd.DataFrame(performance_metrics)
 performance_df.to_csv(csv, index=False)
 
 # output figure for all patients 
-fig_path = os.path.join(output_dir, f"{model_choice}_{cv_choice}_{included_probes}_probes_decoding_results.png")
+fig_path = os.path.join(output_dir, f"SEEG_{model_choice}_{cv_choice}_{included_probes}_probes_decoding_results.png")
 
-fig, axes = plt.subplots(2,3,figsize=(10,6))
+n_rows = 2
+n_cols = math.ceil(len(clean_df['patient_id'].unique()),2)
+
+fig, axes = plt.subplots(n_rows,n_cols,figsize=(10,6))
 axes = axes.flatten()   # 1 through 6 instead of the grid
 
 for index, dict in enumerate(decoding_plot_info):
@@ -195,6 +199,11 @@ for index, dict in enumerate(decoding_plot_info):
     axes[index].set_ylabel('Predicted CATDI')
     axes[index].set_title(f'{dict['patient_id']}')
 
+
+# remove unused subplots
+for i in range(len(decoding_plot_info), len(axes)):
+    fig.delaxes(axes[i])
+    
 fig.tight_layout()
 fig.savefig(fig_path)
 plt.close()
