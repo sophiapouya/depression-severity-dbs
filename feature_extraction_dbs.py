@@ -6,16 +6,23 @@ import pprint
 import numpy as np
 
 
+
+# define the list of sessions to exclude 
 EXCLUDED_SESSIONS = {
-    "DBSTRD001": ["CATDI_run-08_blk-04", "CATDI_run-09_blk-01", "CATDI_run-08_blk-01","CATDI_run-08_blk-04","CATDI_run-09_blk-01"],
-    "DBSTRD002": ["CATDI_run-Day6_blk-02", "CATDI_run-Day7_blk-02","CATDI_run-Day5_blk-03"],
-    "DBSTRD006": ["CATDI_date-02-14-2022_time-08-34-02"],
+    "DBSTRD001": ["CATDI_run-08_blk-04", "CATDI_run-09_blk-01", "CATDI_run-08_blk-01"],
+    "DBSTRD002": ["CATDI_run-Day6_blk-02", "CATDI_run-Day7_blk-02","CATDI_run-Day5_blk-03","CATDI_run-Day7_blk-05"],
+    "DBSTRD006": ["CATDI_date-02-14-2022_time-15-59-03","CATDI_date-02-13-2022_time-17-32-19", "CATDI_date-02-14-2022_time-09-45-31", 
+                  "CATDI_date-02-13-2022_time-15-54-45","CATDI_date-02-13-2022_time-11-39-11","CATDI_date-02-14-2022_time-18-14-39",
+                  "CATDI_date-02-13-2022_time-10-16-33", "CATDI_date-02-12-2022_time-13-57-33","CATDI_date-02-14-2022_time-18-34-02",
+                  "CATDI_date-02-12-2022_time-17-11-18","CATDI_date-02-16-2022_time-13-52-00","CATDI_date-02-14-2022_time-12-34-25",
+                  "CATDI_date-02-14-2022_time-11-09-24", "CATDI_date-02-12-2022_time-15-30-25","CATDI_date-02-13-2022_time-19-27-16"],
     "DBSTRD008": ["CATDI_date-10-25-2022_time-14-50-44", "CATDI_date-10-26-2022_time-14-58-43", "CATDI_date-10-25-2022_time-08-23-49", 
                   "CATDI_date-10-24-2022_time-14-42-53", "CATDI_date-10-24-2022_time-12-27-04", "CATDI_date-10-25-2022_time-20-20-50", 
                   "CATDI_date-10-25-2022_time-16-51-50", "CATDI_date-10-24-2022_time-17-01-51", "CATDI_date-10-25-2022_time-13-42-28",
                   "CATDI_date-10-25-2022_time-11-27-18", "CATDI_date-10-24-2022_time-13-50-41", "CATDI_date-10-24-2022_time-10-57-12" ],
     "DBSTRD010": ["CATDI_date-05-14-2023_time-16-06-29","CATDI_date-05-13-2023_time-12-40-05","CATDI_date-05-13-2023_time-11-39-07"],
-    "DBSTRD011": ["CATDI_date-20240717_time-135720", "CATDI_date-20240720_time-121427", "CATDI_date-20240723_time-183759"],
+    "DBSTRD011": ["CATDI_date-20240717_time-135720", "CATDI_date-20240720_time-121427","CATDI_date-20240717_time-193928",
+                  "CATDI_date-20240717_time-193928","CATDI_date-20240717_time-085151","CATDI_date-20240721_time-160254"],
     "DBSTRD014": []
 }
 
@@ -38,12 +45,13 @@ settings["preprocessing"] = []
 settings["features"]["linelength"] = False
 settings["features"]["welch"] = False
 settings["features"]["adaptive_filter"] = False
+settings.postprocessing.feature_normalization = False
 
 # enable specific feature modules
 settings["features"]["fft"] = True
 settings["features"]["hjorth"] = True
 settings["features"]["sharpwave_analysis"] = True
-settings["features"]["coherence"] = True
+# settings["features"]["coherence"] = True
 settings["features"]["fooof"] = True 
 
 # FFT settings
@@ -58,29 +66,29 @@ settings["fooof_settings"]["max_n_peaks"] = 4
 
 # Burst settings
 settings["features"]["bursts"] = False  # leaving false for now b/c don't know how to specify it
-# settings["bursts_settings"]["threshold"] = 75  # Amplitude threshold (percentile)
-# settings["bursts_settings"]["time_duration_s"] = [0.1, 1.0]  # Min and max burst duration
-# settings["burst_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']  # Which bands to analyze
 
 # sharpwave settings
 settings["sharpwave_analysis_settings"]["filter_ranges_hz"] = [[12, 30], [70,150]]
 settings["sharpwave_analysis_settings"]["estimator"]["mean"] = ['interval', 'prominence', 'sharpness']
 
-# coherence   
-settings["coherence_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']
-settings["coherence_settings"]["channels"] = [
-    ["LSCC_1", "LVCVS_1"], # left hemisphere, bp contact 1
-    ["LSCC_2", "LVCVS_2"], # left hemisphere, bp contact 2
-    ["LSCC_3", "LVCVS_3"], # left hemisphere, bp contact 3
-    ["RSCC_1", "RVCVS_1"], # right hemisphere, bp contact 1
-    ["RSCC_2", "RVCVS_2"], # right hemisphere, bp contact 2
-    ["RSCC_3", "RVCVS_3"], # right hemisphere, bp contact 3
-]
+# coherence 
+settings["features"]["coherence"] = False 
+
+# # coherence   
+# settings["coherence_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']
+# settings["coherence_settings"]["channels"] = [
+#     ["LSCC_1", "LVCVS_1"], # left hemisphere, bp contact 1
+#     ["LSCC_2", "LVCVS_2"], # left hemisphere, bp contact 2
+#     ["LSCC_3", "LVCVS_3"], # left hemisphere, bp contact 3
+#     ["RSCC_1", "RVCVS_1"], # right hemisphere, bp contact 1
+#     ["RSCC_2", "RVCVS_2"], # right hemisphere, bp contact 2
+#     ["RSCC_3", "RVCVS_3"], # right hemisphere, bp contact 3
+# ]
 
 # print settings to verify everything is okay
 pprint.pprint(settings)
 
-all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD014"]
+all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
 catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
 all_session_results = []
@@ -127,7 +135,7 @@ for subj in all_subjs:
                 "status": "good",
                 "rereference": "None"
             })
-            settings.postprocessing.feature_normalization = False
+
             # build file-specific coherence pairs + safe nperseg ---
             file_settings = settings.model_copy(deep=True)
             requested_pairs = file_settings.coherence_settings.channels

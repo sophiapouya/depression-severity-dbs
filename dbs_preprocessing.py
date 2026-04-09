@@ -6,11 +6,8 @@ import os
 # paths
 DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
 PROJECT_NAME = "CATDI"
-SBJ_NAME = "DBSTRD001" # Subject to process
-
-ORIGINAL_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'originalData', SBJ_NAME)
-DBS_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'dbsData', SBJ_NAME)
-REREF_DATA_ROOT = os.path.join(DBS_DATA_ROOT, 'rerefData')
+ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#ALL_SUBJ = ["DBSTRD011"]
 
 # channel patterns
 DBS_CHANNEL_PATTERNS = ['*scc*', '*vcvs*'] 
@@ -21,10 +18,13 @@ PLOTTING_SCALE = 200e-6
 TARGET_SFREQ = 2000  
 
 # flags
-OVERWRITE = True
- 
-# main loop
-if __name__ == "__main__":
+OVERWRITE = False
+
+for SBJ_NAME in ALL_SUBJ:
+
+    ORIGINAL_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'originalData', SBJ_NAME)
+    DBS_DATA_ROOT = os.path.join(DATA_ROOT, PROJECT_NAME, 'neuralData', 'dbsData', SBJ_NAME)
+
 
     file_list = create_nsx_file_list(data_path=ORIGINAL_DATA_ROOT)
 
@@ -36,8 +36,8 @@ if __name__ == "__main__":
         # load nsx, dbs channels
         X_counts, ch_names_all, fs, ext_headers_all, original_elec_ids = load_blackrock_data(nsx_path)
         
-        # remove all sessions less than 60 seconds total
-        if (X_counts.shape[-1])/fs < 60:
+        # remove all sessions less than 45 seconds total
+        if (X_counts.shape[-1])/fs < 45:
             continue    
 
         # use just the dbs leads for now
@@ -59,7 +59,8 @@ if __name__ == "__main__":
         raw_dbs.filter(l_freq=0.3, h_freq=500.0, method="iir", iir_params=dict(order=4, ftype="butter"))
         
         # detect line noise
-        freqs_list = detect_line_noise_peaks(data=raw_dbs._data, fs=final_fs)
+        freqs_list = [60, 120, 180]
+        # freqs_list = detect_line_noise_peaks(data=raw_dbs._data, fs=final_fs)
         
         if len(freqs_list) > 0:
             freqs_list_int = [int(freq) for freq in freqs_list]
@@ -131,25 +132,25 @@ if __name__ == "__main__":
         # common average reference the data
         probes = create_dbs_probes(raw_file=raw_dbs)
 
-        # bipolar reference the data
-        bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
-        os.makedirs(bipolar_dir, exist_ok=True)
-        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
+        # # bipolar reference the data
+        # bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
+        # os.makedirs(bipolar_dir, exist_ok=True)
+        # save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
 
         # bipolar alternating referencing for the data
         bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
         os.makedirs(bipolar_alternating_dir, exist_ok = True)
         save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
 
-        # common average reference
-        car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
-        os.makedirs(car_dir, exist_ok=True)
-        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir, mode="car")
+        # # common average reference
+        # car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
+        # os.makedirs(car_dir, exist_ok=True)
+        # save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=car_dir, mode="car")
 
-        # esr -> averaging 
-        esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
-        os.makedirs(esr_dir, exist_ok = True)
-        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir, mode="esr")
+        # # esr -> averaging 
+        # esr_dir = os.path.join(DBS_DATA_ROOT, "esr_channels")
+        # os.makedirs(esr_dir, exist_ok = True)
+        # save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=esr_dir, mode="esr")
 
 
 

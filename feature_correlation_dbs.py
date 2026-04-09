@@ -22,9 +22,7 @@ features_dict= { "Hjorth":
                     "Sharpwave_Mean_interval_range_12_30", "Sharpwave_Mean_sharpness_range_12_30",
                     "Sharpwave_Max_sharpness_range_12_30"],
                 "Fooof": 
-                    ["fooof_a_exp","fooof_a_offset"],
-                "Coherence": 
-                    ["coh_", "icoh_"]
+                    ["fooof_a_exp","fooof_a_offset"]
 }
 
 for patient in feature_pd["patient_id"].unique():
