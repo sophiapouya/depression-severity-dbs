@@ -6,6 +6,8 @@ from scipy.signal import welch, find_peaks
 import fnmatch
 from typing import Any, Literal
 import re
+import pandas as pd
+import json
 
 # create list of nsx files (ns3 if it exists, ns5 if there is no ns3 file)
 def create_nsx_file_list(data_path: str) -> list[str]:    #data path assumed format: original_data_root/session_folder/files
@@ -82,7 +84,11 @@ def scale_to_volts(X_counts: np.ndarray, ext_headers: list[dict[str, Any]]) -> n
     return X
 
 # find the dbs channel names and indices       
-def find_dbs_channels(channel_names: list[str], patterns: list[str]) -> tuple[list[str], list[int]]:
+def find_dbs_channels(
+    channel_names: list[str], 
+    patterns: list[str]
+) -> tuple[list[str], list[int]]:
+    
     dbs_chans = []
     dbs_indices = []
     for index, ch in enumerate(channel_names):
@@ -102,19 +108,15 @@ def find_dbs_channels(channel_names: list[str], patterns: list[str]) -> tuple[li
 
 # find the seeg channel names and indices       
 def find_seeg_channels(
-    channel_names: list[str], patterns: list[str]
+    channel_names: list[str],
+    pattern: re.Pattern,
 ) -> tuple[list[str], list[int]]:
+    
     seeg_chans = []
     seeg_indices = []
+
     for index, ch in enumerate(channel_names):
-        # clean up the names
-        ch_cleaned=ch.lower()
-        found = False
-        for pat in patterns:
-            if fnmatch.fnmatch(ch_cleaned, pat):
-                found = True
-                break
-        if not found:
+        if pattern.search(ch):
             seeg_chans.append(ch)
             seeg_indices.append(index)
 
@@ -222,9 +224,10 @@ def save_seeg_chans(
     raw_data: mne.io.BaseRaw, 
     block_name: str, 
     save_dir: str,
-) -> None:  
+    seeg_metadata: dict[str,str],
+) -> dict[str,list[str]]:  
    
-    ch_names, chans_arr = bipolar_seeg(raw_data=raw_data, probes=probes)
+    ch_names, chans_arr, output_dict = bipolar_seeg(raw_data=raw_data, probes=probes, seeg_metadata=seeg_metadata)
 
     # save the session level fif file
     info = mne.create_info(ch_names=ch_names, sfreq=raw_data.info['sfreq'], ch_types='seeg')
@@ -236,15 +239,26 @@ def save_seeg_chans(
     # save as fif file
     session_file_name = os.path.join(save_dir, f"{block_name}.fif")
     raw_seeg.save(session_file_name, overwrite=True)
-    
+
+    return output_dict
+
+def get_matched_name(
+    chan_name: str
+) -> str:
+    chan_name_parts = chan_name.split("-")
+    name = str(chan_name_parts[0]+"-"+chan_name_parts[1])
+    final_name = name.lower()
+    return final_name
+
 # bipolar referencing for seeg contacts
 def bipolar_seeg(
     *, 
     probes: dict[str, list[str]], 
     raw_data: mne.io.BaseRaw,
+    seeg_metadata: dict[str, str],
 ) -> tuple[list, np.ndarray]:
     
-    chan_names, chans_data = [], []
+    chan_names, chans_data, chans_regions = [], [], []
 
     # pre pull the data
     data = raw_data.get_data()
@@ -252,22 +266,54 @@ def bipolar_seeg(
 
     for probe_name, probe_channels in probes.items():
         sorted_chans = sorted(probe_channels, key = lambda ch: int(ch.split("-")[-1]))
-        for i in range(len(sorted_chans) -1):
-            chan_1 = data[ch_to_idx[sorted_chans[i]]]
-            chan_2 = data[ch_to_idx[sorted_chans[i+1]]]
-            chan_name = f"{probe_name}_{i+2}-{i+1}"
-            chan_data = chan_2 - chan_1
-            chan_names.append(chan_name)
-            chans_data.append(chan_data)
-    
+        for i in range(len(sorted_chans) -1):  
+            # get the matching channel name to compare against the seeg metadata
+            chan_1_name = get_matched_name(sorted_chans[i])
+            chan_2_name = get_matched_name(sorted_chans[i+1])
+            chan_1_region = seeg_metadata.get(chan_1_name, "none")
+            chan_2_region = seeg_metadata.get(chan_2_name, "none")
+
+            # look up the region for the contact
+            # only include if both regions are the same OR one region is none and the other contact has a region
+            # continue on if both regions are None
+            if (chan_1_region == "none" and chan_2_region == "none"):
+                continue
+            
+            # same region 
+            elif ((chan_1_region == chan_2_region) or ((chan_1_region == "none") or (chan_2_region == "none"))):
+            
+                chan_1_data = data[ch_to_idx[sorted_chans[i]]]
+                chan_2_data = data[ch_to_idx[sorted_chans[i+1]]]
+                chan_name = f"{probe_name.upper()}_{i+1}"
+                
+                chan_data = chan_2_data - chan_1_data
+                chan_names.append(chan_name)
+                chans_data.append(chan_data)
+                
+                if chan_1_region == "none":
+                    region = chan_2_region
+                else:
+                    region = chan_1_region
+
+                chans_regions.append(region)
+            
+            # regions are different, don't include
+            else:
+                continue
+
+    output_dict = {
+        "channel_name": chan_names,
+        "channel_region": chans_regions
+    }
+
     chans_data_arr = np.stack(chans_data, axis=0)
-    return chan_names, chans_data_arr
+    return chan_names, chans_data_arr, output_dict
 
 
 # detect line noise for further filtering for each session
 def detect_line_noise_peaks(data: np.ndarray, fs: float,
                              fmin=50.0,
-                             fmax=500.0,
+                             fmax=300.0,
                              prominence_db=10.0,
                              min_distance_hz=20.0) -> np.ndarray:
     # Compute PSD
@@ -325,7 +371,7 @@ def create_dbs_probes(raw_file: mne.io.BaseRaw) -> dict[str, list[str]]:
 
 # create a dictionary of seeg probes with clean names
 def create_seeg_probes(
-    raw_file: mne.io.BaseRaw
+    raw_file: mne.io.BaseRaw,
 ) -> dict[str, list[str]]:
     probes = {}
     for channel in raw_file.ch_names:
@@ -336,3 +382,37 @@ def create_seeg_probes(
         
         probes[probe_prefix].append(channel)
     return probes
+
+def get_seeg_metadata(
+    file_path: str,
+    patient: str,
+) -> dict[str, str]:
+    
+    final_dict = {}
+    excel_df = pd.read_excel(file_path, sheet_name=patient)
+    # drop all the dbs contacts
+    clean_excel = excel_df[excel_df['Type'] != "DBS"]
+
+    # make the row None if there is no area on it
+    clean_excel["area"] = clean_excel["area"].fillna("none")
+
+    for i, row in clean_excel.iterrows():
+        label = str(row["Label"].strip().lower())
+        region = str(row["area"].strip().lower())
+        
+        final_dict[label] = region
+
+    return final_dict
+
+
+def output_metadata(
+    file_path: str,
+    output_dict: dict[str, list[str]]
+) -> None: 
+    
+    df = pd.DataFrame(output_dict)
+    df.to_csv(file_path, index=False)
+
+    
+    
+        
