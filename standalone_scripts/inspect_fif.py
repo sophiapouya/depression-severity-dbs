@@ -11,9 +11,15 @@ PLOTTING_SCALE = 200e-6
 # raw.plot(block=True,scalings=PLOTTING_SCALE)
 
 # patient level sifting, define patient 
-sbj = "DBSTRD011"
-fif_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/"
-fif_patient_dir = os.path.join(fif_dir, sbj,"bipolar_channels")
+electrode_type = "DBS"  # choices: DBS or SEEG
+sbj = "DBSTRD002"
+
+if electrode_type == "DBS":
+    fif_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
+    fif_patient_dir = os.path.join(fif_dir, sbj,"bipolar_alternating_channels")
+else:
+    fif_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/"
+    fif_patient_dir = os.path.join(fif_dir, sbj,"bipolar_channels")
 
 for file in os.listdir(fif_patient_dir):
     if file.endswith(".fif"):

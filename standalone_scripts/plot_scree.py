@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+import math
 
 
 # paths
@@ -22,7 +23,10 @@ clean_df = all_patient_df.drop(columns=["time"], errors="ignore")
 patient_ids = clean_df["patient_id"].unique()
 
 # make subplot grid
-fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+n_rows = 2
+n_cols = math.ceil(len(clean_df['patient_id'].unique())/2)
+
+fig, axes = plt.subplots(n_rows,n_cols,figsize=(4 * n_cols, 4 * n_rows),constrained_layout=True)
 axes = axes.flatten()
 
 for i, patient in enumerate(patient_ids):
@@ -68,12 +72,16 @@ for i, patient in enumerate(patient_ids):
     axes[i].set_ylabel("Cumulative Explained Variance")
     axes[i].set_ylim(0, 1.05)
 
+# remove unused subplots
+for i in range(len(patient_ids), len(axes)):
+    fig.delaxes(axes[i])
+
 # tidy layout
 fig.tight_layout()
 
 # save figure
 fig_path = os.path.join(output_dir, "all_patients_scree_plot_ALL.png")
-fig.savefig(fig_path, dpi=300)
+fig.savefig(fig_path)
 plt.close()
 
 print(f"Saved figure to: {fig_path}")
