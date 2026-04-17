@@ -12,15 +12,16 @@ from src.postprocessing_functions import get_nrmse
 from scipy.stats import pearsonr 
 import matplotlib.pyplot as plt
 import math
+from config import CATDI_SCORES, BASE_DIR_DBS
 
 
 # cv choice
 cv_choice="LOO" # choices -> LOO or KFOLD
 
 # define input files
-catdi_scores_file = '/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx'
+catdi_scores_file = str(CATDI_SCORES)
 
-base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/'
+base_dir = str(BASE_DIR_DBS)
 all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 
 

@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import pearsonr 
 import matplotlib.pyplot as plt
 import math
-
+from config import BASE_DIR_DBS, BASE_DIR_SEEG, FEATURES_DBS, FEATURES_SEEG
 
 probe_type = "DBS"      # choices: "DBS", "SEEG"
 
@@ -24,17 +24,17 @@ cv_choice = "LOO"     # choices: "KFOLD", "LOO"
 # # exclude probes
 # included_probes = "ALL"   # choices: "LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"
 if probe_type == "DBS":
-    base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
+    base_dir = str(BASE_DIR_DBS)
+    csv_path = str(FEATURES_DBS)
     #probe_options = ["LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"]
     probe_options= ["ALL"]
 else:
-    base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData'
+    base_dir = str(BASE_DIR_SEEG)
+    csv_path = str(FEATURES_SEEG)
     probe_options = ["ALL"]
 
 # define input csv
-csv_path = os.path.join(base_dir, "CATDI_master_features.csv")
 all_patient_df = pd.read_csv(csv_path)
-
 
 for included_probes in probe_options:
 

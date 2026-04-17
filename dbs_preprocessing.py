@@ -2,9 +2,10 @@ from src.preprocessing_functions import create_nsx_file_list, load_blackrock_dat
 import json
 import mne
 import os
+from config import ROOT_DIR
 
 # paths
-DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
+DATA_ROOT = str(ROOT_DIR)
 PROJECT_NAME = "CATDI"
 #ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 ALL_SUBJ = ["DBSTRD011","DBSTRD014"]

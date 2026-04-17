@@ -5,22 +5,23 @@ from scipy.stats import pearsonr
 import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection
+from config import BASE_DIR_DBS, BASE_DIR_SEEG, CATDI_SCORES, CATDI_ELECTRODES
 
 ELEC_TYPE = "DBS"  # either DBS or SEEG
 
-catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
+catdi_scores_excel = str(CATDI_ELECTRODES)
 all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs = ["DBSTRD011", "DBSTRD014"]
 
 if ELEC_TYPE == "SEEG":
     ref_types = ["bipolar"]
-    base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/"
-    plot_dir = "/Users/sophiapouya/workspace/bcm/CATDI/depression-severity-dbs/corr_plots_seeg"
+    base_dir = str(BASE_DIR_SEEG)
+    plot_dir = os.path.join(base_dir, "corr_plots_seeg")
     os.makedirs(plot_dir,exist_ok=True)
 else: 
     ref_types = ["bipolar_alternating"]
-    base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
-    plot_dir = "/Users/sophiapouya/workspace/bcm/CATDI/depression-severity-dbs/corr_plots_dbs"
+    base_dir = str(BASE_DIR_DBS)
+    plot_dir = os.path.join(base_dir, "corr_plots_dbs")
     os.makedirs(plot_dir, exist_ok=True)
 
 for subj_name in all_subjs: 

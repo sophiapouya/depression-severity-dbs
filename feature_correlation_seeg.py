@@ -3,13 +3,14 @@ import os
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
+from config import FEATURES_SEEG, BASE_DIR_SEEG
 
 # read in features csv
-features_csv_path = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/CATDI_master_features.csv'
+features_csv_path = str(FEATURES_SEEG)
 feature_pd = pd.read_csv(features_csv_path)
 
 # output directory
-save_dir = "/Users/sophiapouya/workspace/bcm/CATDI/depression-severity-dbs/feature_corr_plots_seeg"
+save_dir = os.path.join(str(BASE_DIR_SEEG),"feature_corr_plots_seeg")
 os.makedirs(save_dir,exist_ok=True)
 
 features_dict= { "Hjorth":

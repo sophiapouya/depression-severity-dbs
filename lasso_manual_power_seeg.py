@@ -12,14 +12,15 @@ from scipy.stats import pearsonr
 from src.postprocessing_functions import get_nrmse
 import matplotlib.pyplot as plt
 import math
+from config import BASE_DIR_SEEG, CATDI_SCORES
 
 # cv choice
 cv_choice="LOO" # choices -> LOO or KFOLD
 
 # define input files
 label = "new_labels_all_best_region_including_none_contacts"
-catdi_scores_file = '/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx'
-base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/'
+catdi_scores_file = str(CATDI_SCORES)
+base_dir = str(BASE_DIR_SEEG)
 all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs= ["DBSTRD001"]
 #regions = ["acc"]

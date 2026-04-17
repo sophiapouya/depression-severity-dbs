@@ -1,8 +1,9 @@
 from src.postprocessing_functions import save_power_data_from_fif_seeg
 import os
 from scipy.signal import butter
+from config import BASE_DIR_SEEG
 
-base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/"
+base_dir = str(BASE_DIR_SEEG)
 all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs = ["DBSTRD011"]
 REF_TYPE = "bipolar"

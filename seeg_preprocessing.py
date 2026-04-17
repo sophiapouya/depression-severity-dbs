@@ -2,13 +2,14 @@ from src.preprocessing_functions import create_nsx_file_list, load_blackrock_dat
 import mne
 import os
 import re
+from config import ROOT_DIR, CATDI_ELECTRODES
 
 # paths
-DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
+DATA_ROOT = str(ROOT_DIR)
 PROJECT_NAME = "CATDI"
 ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 # ALL_SUBJ = ["DBSTRD011"]
-ELECTRODE_INFO_EXCEL= "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_electrodes.xlsx"
+ELECTRODE_INFO_EXCEL= str(CATDI_ELECTRODES)
 
 # params
 PLOTTING_SCALE = 200e-6

@@ -12,14 +12,14 @@ from sklearn.pipeline import make_pipeline
 from scipy.stats import pearsonr
 
 from src.postprocessing_functions import get_nrmse
-
+from config import CATDI_SCORES, BASE_DIR_DBS
 
 # -----------------------------
 # Settings
 # -----------------------------
 cv_choice = "LOO"
-catdi_scores_file = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
-base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
+catdi_scores_file = str(CATDI_SCORES)
+base_dir = str(BASE_DIR_DBS)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--patient_id", type=str, required=True)
