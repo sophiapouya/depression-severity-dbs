@@ -124,52 +124,125 @@ def find_seeg_channels(
 
 # reference and save the dbs channels as a fif file
 def save_dbs_chans(
-    probes: dict[str, list[str]], raw_data: mne.io.BaseRaw, block_name: str, save_dir: str, mode: Literal["bipolar_alternating", "bipolar_regular", "esr", "car"]
+    patient: str,
+    probes: dict[str, list[str]], 
+    raw_data: mne.io.BaseRaw, 
+    block_name: str, 
+    save_dir: str, 
+    mode: Literal["bipolar_alternating", "bipolar_regular", "esr", "car"]
 ) -> None:  
     ch_names, chans = [], []
+    expected_pairs = [(1,2), (2,3), (3,4), (4,5), (5,6), (6,7), (7,8)]  #relevant only to dbstrd011 and dbstrd014 vcvs probe
     avg_ref = raw_data.get_data(picks=raw_data.ch_names).mean(axis=0)
     for probe in probes:
 
-        if (mode == "bipolar_alternating") or (mode == "bipolar_regular"):
-            avg_1, avg_2 = [], []
-            ch1, ch8 = None, None
+        if mode in ["bipolar_alternating","bipolar_regular"]:
+            probe_exception = False
+            if patient in ["DBSTRD011", "DBSTRD014"] and "VCVS" in probe:
+                print(f"{probe} for {patient}, doing bipolar referencing")
+                probe_exception = True
+                contact_map = {}
+                for chan in probes[probe]:
+                    contact_num = int((chan.split("-")[0])[-2:])
+                    contact_map[contact_num] = chan
+                
+                for c1, c2 in expected_pairs:
+                    chan_name = f"{probe}_{c2}-{c1}"
 
-            for chan in probes[probe]:
-                prefix = chan.split("-")[0]
-                contact = int(prefix[-2:])
-                # average 2, 3, and 4
-                if contact in (2,3,4):
-                    avg_1.append(chan)
-                elif contact in (5,6,7):
-                    avg_2.append(chan)
-                elif contact ==1:
-                    ch1 = chan
-                elif contact == 8: 
-                    ch8 = chan
-            
-            # if any of the channels are not present, skip this session b/c there isn't enough data
-            if ch1 is None or ch8 is None or (len(avg_1) == 0) or (len(avg_2) == 0):
-                print(f"Skipping probe {probe} in {block_name} for bipolar channel since at least one channel is missing or excluded")
-                continue
-            
-            avg_1_total = raw_data.get_data(picks =avg_1).mean(axis=0)   # 1 channel, time series data
-            avg_2_total = raw_data.get_data(picks=avg_2).mean(axis=0)    # 1 channel, time series data
+                    if (c1 in contact_map) and (c2 in contact_map):
+                        data_1 = raw_data.get_data(picks=contact_map[c1]).flatten() 
+                        data_2 = raw_data.get_data(picks=contact_map[c2]).flatten()
+                        data = data_2 - data_1
+                        ch_names.append(chan_name)
+                        chans.append(data)
 
-            if mode == "bipolar_regular":
-                bp1 = raw_data.get_data(picks=ch1).flatten() - avg_1_total
-                bp2 = avg_1_total - avg_2_total
-                bp3 = avg_2_total - raw_data.get_data(picks=ch8).flatten()
-            elif mode == "bipolar_alternating":
-                bp1 = raw_data.get_data(picks=ch1).flatten() - raw_data.get_data(picks=ch8).flatten()
-                bp2 = raw_data.get_data(picks=ch1).flatten() - avg_2_total
-                bp3 = avg_1_total - raw_data.get_data(picks=ch8).flatten()
-            
-            ch_names.append(f"{probe}_1")
-            ch_names.append(f"{probe}_2")
-            ch_names.append(f"{probe}_3")
-            chans.append(bp1)
-            chans.append(bp2)
-            chans.append(bp3)
+                    else:
+                        print(f"Skipping {chan_name} in {block_name}")
+
+            if not probe_exception: 
+                avg_1, avg_2 = [], []
+                ch1, ch8 = None, None
+
+                for chan in probes[probe]:
+                    prefix = chan.split("-")[0]
+                    contact = int(prefix[-2:])
+                    # average 2, 3, and 4
+                    if contact in (2,3,4):
+                        avg_1.append(chan)
+                    elif contact in (5,6,7):
+                        avg_2.append(chan)
+                    elif contact ==1:
+                        ch1 = chan
+                    elif contact == 8: 
+                        ch8 = chan
+                
+                # if any of the channels are not present, skip this session b/c there isn't enough data
+                if (ch1 is None) and (ch8 is None) and (len(avg_1) == 0) and (len(avg_2) == 0):
+                    print(f"Skipping probe {probe} in {block_name} for bipolar channel since at least all channels are missing or excluded")
+                    continue
+                
+                # compute averages only if the contributing contacts exist
+                avg_1_total = None
+                avg_2_total = None
+
+                if len(avg_1) > 0:
+                    avg_1_total = raw_data.get_data(picks=avg_1).mean(axis=0)
+
+                if len(avg_2) > 0:
+                    avg_2_total = raw_data.get_data(picks=avg_2).mean(axis=0)
+
+                ch1_data = None
+                ch8_data = None
+
+                if ch1 is not None:
+                    ch1_data = raw_data.get_data(picks=ch1).flatten()
+
+                if ch8 is not None:
+                    ch8_data = raw_data.get_data(picks=ch8).flatten()
+
+                if mode == "bipolar_regular":
+                    # probe_1 = ch1 - avg(2,3,4)
+                    if (ch1_data is not None) and (avg_1_total is not None):
+                        ch_names.append(f"{probe}_1")
+                        chans.append(ch1_data - avg_1_total)
+                    else:
+                        print(f"Skipping {probe}_1 in {block_name}")
+
+                    # probe_2 = avg(2,3,4) - avg(5,6,7)
+                    if (avg_1_total is not None) and (avg_2_total is not None):
+                        ch_names.append(f"{probe}_2")
+                        chans.append(avg_1_total - avg_2_total)
+                    else:
+                        print(f"Skipping {probe}_2 in {block_name}")
+
+                    # probe_3 = avg(5,6,7) - ch8
+                    if (avg_2_total is not None) and (ch8_data is not None):
+                        ch_names.append(f"{probe}_3")
+                        chans.append(avg_2_total - ch8_data)
+                    else:
+                        print(f"Skipping {probe}_3 in {block_name}")
+
+                elif mode == "bipolar_alternating":
+                    # probe_1 = ch1 - ch8
+                    if (ch1_data is not None) and (ch8_data is not None):
+                        ch_names.append(f"{probe}_1")
+                        chans.append(ch1_data - ch8_data)
+                    else:
+                        print(f"Skipping {probe}_1 in {block_name}")
+
+                    # probe_2 = ch1 - avg(5,6,7)
+                    if (ch1_data is not None) and (avg_2_total is not None):
+                        ch_names.append(f"{probe}_2")
+                        chans.append(ch1_data - avg_2_total)
+                    else:
+                        print(f"Skipping {probe}_2 in {block_name}")
+
+                    # probe_3 = avg(2,3,4) - ch8
+                    if (avg_1_total is not None) and (ch8_data is not None):
+                        ch_names.append(f"{probe}_3")
+                        chans.append(avg_1_total - ch8_data)
+                    else:
+                        print(f"Skipping {probe}_3 in {block_name}")
 
         elif mode == "esr":
             probe_chans = probes[probe]

@@ -6,19 +6,18 @@ import os
 # paths
 DATA_ROOT = "/Users/sophiapouya/workspace/bcm"
 PROJECT_NAME = "CATDI"
-ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-#ALL_SUBJ = ["DBSTRD011"]
+#ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+ALL_SUBJ = ["DBSTRD011","DBSTRD014"]
 
 # channel patterns
 DBS_CHANNEL_PATTERNS = ['*scc*', '*vcvs*'] 
-SEEG_CHANNEL_PATTERNS = ['*of*', '*vm*',' *acc*', '*amy*', '*pf*']
 
 # params
 PLOTTING_SCALE = 200e-6
 TARGET_SFREQ = 2000  
 
 # flags
-OVERWRITE = False
+OVERWRITE = True
 
 for SBJ_NAME in ALL_SUBJ:
 
@@ -140,7 +139,7 @@ for SBJ_NAME in ALL_SUBJ:
         # bipolar alternating referencing for the data
         bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
         os.makedirs(bipolar_alternating_dir, exist_ok = True)
-        save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
+        save_dbs_chans(patient=SBJ_NAME, probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
 
         # # common average reference
         # car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")

@@ -4,8 +4,8 @@ from scipy.signal import butter
 
 
 base_dir = "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/"
-all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD014"]
-#all_subjs = ["DBSTRD011"]
+#all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+all_subjs = ["DBSTRD011", "DBSTRD014"]
 ref_types = ["bipolar_alternating"]
 # ref_types = ["bipolar","car","esr","bipolar_alternating"]
 
@@ -23,8 +23,8 @@ EXCLUDED_SESSIONS = {
                   "CATDI_date-10-25-2022_time-16-51-50", "CATDI_date-10-24-2022_time-17-01-51", "CATDI_date-10-25-2022_time-13-42-28",
                   "CATDI_date-10-25-2022_time-11-27-18", "CATDI_date-10-24-2022_time-13-50-41", "CATDI_date-10-24-2022_time-10-57-12" ],
     "DBSTRD010": ["CATDI_date-05-14-2023_time-16-06-29","CATDI_date-05-13-2023_time-12-40-05","CATDI_date-05-13-2023_time-11-39-07"],
-    "DBSTRD011": ["CATDI_date-20240717_time-135720", "CATDI_date-20240720_time-121427","CATDI_date-20240717_time-193928",
-                  "CATDI_date-20240717_time-193928","CATDI_date-20240717_time-085151","CATDI_date-20240721_time-160254"],
+    "DBSTRD011": ["CATDI_date-20240718_time-131321", "CATDI_date-20240720_time-121427", "CATDI_date-20240718_time-194816",
+                  "CATDI_date-20240717_time-193928", "CATDI_date-20240717_time-172548"],
     "DBSTRD014": []
 }
 

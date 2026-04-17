@@ -5,8 +5,6 @@ import pandas as pd
 import pprint
 import numpy as np
 
-
-
 # define the list of sessions to exclude 
 EXCLUDED_SESSIONS = {
     "DBSTRD001": ["CATDI_run-08_blk-04", "CATDI_run-09_blk-01", "CATDI_run-08_blk-01"],
@@ -21,8 +19,8 @@ EXCLUDED_SESSIONS = {
                   "CATDI_date-10-25-2022_time-16-51-50", "CATDI_date-10-24-2022_time-17-01-51", "CATDI_date-10-25-2022_time-13-42-28",
                   "CATDI_date-10-25-2022_time-11-27-18", "CATDI_date-10-24-2022_time-13-50-41", "CATDI_date-10-24-2022_time-10-57-12" ],
     "DBSTRD010": ["CATDI_date-05-14-2023_time-16-06-29","CATDI_date-05-13-2023_time-12-40-05","CATDI_date-05-13-2023_time-11-39-07"],
-    "DBSTRD011": ["CATDI_date-20240717_time-135720", "CATDI_date-20240720_time-121427","CATDI_date-20240717_time-193928",
-                  "CATDI_date-20240717_time-193928","CATDI_date-20240717_time-085151","CATDI_date-20240721_time-160254"],
+    "DBSTRD011": ["CATDI_date-20240718_time-131321", "CATDI_date-20240720_time-121427", "CATDI_date-20240718_time-194816",
+                  "CATDI_date-20240717_time-193928", "CATDI_date-20240717_time-172548"],
     "DBSTRD014": []
 }
 
@@ -89,6 +87,7 @@ settings["features"]["coherence"] = False
 pprint.pprint(settings)
 
 all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#all_subjs = ["DBSTRD011", "DBSTRD014"]
 base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
 catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
 all_session_results = []
@@ -100,7 +99,7 @@ for subj in all_subjs:
     # bring in the catdi scores
     catdi_excel = pd.read_excel(catdi_scores_excel, sheet_name=subj)
     # clean up the names if they have text before CATDI
-    if subj =="DBSTRD014":
+    if subj in ["DBSTRD014","DBSTRD011"]:
         catdi_excel["session"] = catdi_excel["Name"].str.split("_task-").str[1]
     else:
         catdi_excel["session"] = catdi_excel["Name"]
