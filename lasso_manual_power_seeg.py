@@ -23,7 +23,7 @@ base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/'
 all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs= ["DBSTRD001"]
 #regions = ["acc"]
-regions= ["acc","vmpfc","dlpfc","ofc"]
+regions= ["dlpfc"]
 
 # list for keeping track of performance for output csv
 performance_metrics = []
@@ -214,17 +214,18 @@ for sbj in all_subjs:
 # output stats to csv
 output_dir = os.path.join(base_dir,"lasso_test")
 os.makedirs(output_dir, exist_ok=True)
-csv = os.path.join(output_dir,f"{label}_lasso_manual_power_{cv_choice}.csv")
+csv = os.path.join(output_dir,f"dlpfc_only_{label}_lasso_manual_power_{cv_choice}.csv")
 performance_df = pd.DataFrame(performance_metrics)
 performance_df.to_csv(csv, index=False)
 
 # output figure for all patients 
-fig_path = os.path.join(output_dir, f"{label}_lasso_decoding_results_manual_power_{cv_choice}.png")
+fig_path = os.path.join(output_dir, f"dlpfc_only_{label}_lasso_decoding_results_manual_power_{cv_choice}.png")
 
 n_rows = 2
 n_cols = math.ceil(len(all_subjs)/n_rows)
 
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(10,6))
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows),
+    constrained_layout=True)
 axes = axes.flatten()   # 1 through 6 instead of the grid
 
 for index, dict in enumerate(decoding_plot_info):
@@ -240,7 +241,7 @@ for index, dict in enumerate(decoding_plot_info):
     # show scatter plot of measured and predicted catdi values
     axes[index].scatter(measured, predicted, color='blue')
     # label R value and P value from pearson correlation
-    axes[index].text(.10,.80,f"R={r_val:.2f} \nP={p_val:.4}",transform=axes[index].transAxes)
+    axes[index].text(.10,.80,f"R={r_val:.2f}",fontsize=14,transform=axes[index].transAxes)
     axes[index].set_xlabel('Measured CATDI')
     axes[index].set_ylabel('Predicted CATDI')
     axes[index].set_title(f"{dict['patient_id']}")

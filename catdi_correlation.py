@@ -10,6 +10,7 @@ ELEC_TYPE = "DBS"  # either DBS or SEEG
 
 catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
 all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#all_subjs = ["DBSTRD011", "DBSTRD014"]
 
 if ELEC_TYPE == "SEEG":
     ref_types = ["bipolar"]
