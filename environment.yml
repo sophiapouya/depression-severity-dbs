@@ -1,0 +1,22 @@
+name: neural-analysis
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - mne
+  - nibabel
+  - openpyxl
+  - pip
+  - pip:
+      - fooof
+      - py-neuromodulation
+      - mne-bids
+      - mne-connectivity
+      - mne-lsl
+      - scikit-optimize
