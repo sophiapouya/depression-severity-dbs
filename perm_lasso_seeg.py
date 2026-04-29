@@ -24,16 +24,15 @@ parser.add_argument("--patient_id", type=str, required=True)
 args = parser.parse_args()
 patient_id = args.patient_id
 
-regions = ["acc", "vmpfc", "dlpfc", "ofc", "amy"]
+regions = ["dlpfc"]
 l1_reg_list = np.around(np.arange(0.1, 1.1, 0.1), 1)
 outlier = 4
 
 n_permutations = 1000
 random_seed = 42
 
-output_dir = os.path.join(base_dir, "lasso_permutation_test")
+output_dir = os.path.join(base_dir, "lasso_permutation_test_dlpfc_only")
 os.makedirs(output_dir, exist_ok=True)
-
 
 # -----------------------------
 # Load raw patient inputs
@@ -43,7 +42,7 @@ patient_power_csv = os.path.join(
     patient_id,
     "bipolar_channels",
     "power_bipolar",
-    f"{patient_id}_bipolar_power.csv"
+    f"{str(patient_id)}_bipolar_power.csv"
 )
 patient_df_raw = pd.read_csv(patient_power_csv)
 

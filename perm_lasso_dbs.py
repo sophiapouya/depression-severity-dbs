@@ -44,7 +44,7 @@ patient_power_csv = os.path.join(
     patient_id,
     "bipolar_alternating_channels",
     "power_bipolar_alternating",
-    f"{patient_id}_bipolar_alternating_power.csv"
+    f"{str(patient_id)}_bipolar_alternating_power.csv"
 )
 patient_df_raw = pd.read_csv(patient_power_csv)
 
