@@ -4,8 +4,8 @@ from scipy.signal import butter
 from config import BASE_DIR_SEEG
 
 base_dir = str(BASE_DIR_SEEG)
-all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-#all_subjs = ["DBSTRD011"]
+#all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+all_subjs = ["DBSTRD014"]
 REF_TYPE = "bipolar"
 
 # define the list of sessions to exclude 
@@ -21,7 +21,8 @@ EXCLUDED_SESSIONS = {
                   "CATDI_date-10-26-2022_time-18-24-14"],
     "DBSTRD010": ["CATDI_date-05-11-2023_time-16-20-04"],
     "DBSTRD011": ["CATDI_date-20240724_time-145011", "CATDI_date-20240719_time-213319","CATDI_date-20240724_time-111946"],
-    "DBSTRD014": ["CATDI_date-20250307_time-130552","CATDI_date-20250312_time-183153","CATDI_date-20250311_time-100834"]
+    "DBSTRD014": ["CATDI_date-20250307_time-130552","CATDI_date-20250312_time-183153","CATDI_date-20250307_time-195211",
+                  "CATDI_date-20250308_time-084929"]
 }
 # perform hilbert power series in freq bands
 FEATURE_BANDS = {

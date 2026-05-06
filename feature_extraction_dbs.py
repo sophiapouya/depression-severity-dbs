@@ -4,6 +4,8 @@ import mne
 import pandas as pd
 import pprint
 import numpy as np
+from config import BASE_DIR_DBS, CATDI_SCORES
+
 
 # define the list of sessions to exclude 
 EXCLUDED_SESSIONS = {
@@ -70,26 +72,26 @@ settings["sharpwave_analysis_settings"]["filter_ranges_hz"] = [[12, 30], [70,150
 settings["sharpwave_analysis_settings"]["estimator"]["mean"] = ['interval', 'prominence', 'sharpness']
 
 # coherence 
-settings["features"]["coherence"] = False 
+# settings["features"]["coherence"] = False 
 
-# # coherence   
-# settings["coherence_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']
-# settings["coherence_settings"]["channels"] = [
-#     ["LSCC_1", "LVCVS_1"], # left hemisphere, bp contact 1
-#     ["LSCC_2", "LVCVS_2"], # left hemisphere, bp contact 2
-#     ["LSCC_3", "LVCVS_3"], # left hemisphere, bp contact 3
-#     ["RSCC_1", "RVCVS_1"], # right hemisphere, bp contact 1
-#     ["RSCC_2", "RVCVS_2"], # right hemisphere, bp contact 2
-#     ["RSCC_3", "RVCVS_3"], # right hemisphere, bp contact 3
-# ]
+# coherence   
+settings["coherence_settings"]["frequency_bands"] = ['theta', 'alpha', 'beta']
+settings["coherence_settings"]["channels"] = [
+    ["LSCC_1", "LVCVS_1"], # left hemisphere, bp contact 1
+    ["LSCC_2", "LVCVS_2"], # left hemisphere, bp contact 2
+    ["LSCC_3", "LVCVS_3"], # left hemisphere, bp contact 3
+    ["RSCC_1", "RVCVS_1"], # right hemisphere, bp contact 1
+    ["RSCC_2", "RVCVS_2"], # right hemisphere, bp contact 2
+    ["RSCC_3", "RVCVS_3"], # right hemisphere, bp contact 3
+]
 
 # print settings to verify everything is okay
 pprint.pprint(settings)
 
-all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010"]
 #all_subjs = ["DBSTRD011", "DBSTRD014"]
-base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
-catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
+base_dir = str(BASE_DIR_DBS)
+catdi_scores_excel = str(CATDI_SCORES)
 all_session_results = []
 
 for subj in all_subjs:
@@ -239,8 +241,8 @@ other_cols = [c for c in master_df.columns if c not in id_cols]
 master_df = master_df[id_cols + other_cols]
 
 # save as pkl and csv
-csv_path = os.path.join(base_dir, "CATDI_master_features.csv")
+csv_path = os.path.join(base_dir, "CATDI_master_features_coherence.csv")
 master_df.to_csv(csv_path, index=False)
 
-pkl_path = os.path.join(base_dir, "CATDI_master_features.pkl")
+pkl_path = os.path.join(base_dir, "CATDI_master_features_coherence.pkl")
 master_df.to_pickle(pkl_path)

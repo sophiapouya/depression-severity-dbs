@@ -7,8 +7,8 @@ from config import ROOT_DIR, CATDI_ELECTRODES
 # paths
 DATA_ROOT = str(ROOT_DIR)
 PROJECT_NAME = "CATDI"
-ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-# ALL_SUBJ = ["DBSTRD011"]
+#ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+ALL_SUBJ = ["DBSTRD014"]
 ELECTRODE_INFO_EXCEL= str(CATDI_ELECTRODES)
 
 # params
@@ -19,7 +19,7 @@ TARGET_SFREQ = 2000
 SEEG_PATTERN = re.compile(r"[A-Za-z]+-[A-Za-z]+\d+-\d{3}")
 
 # flags
-OVERWRITE = True
+OVERWRITE = False
 
 # bad channels for seeg
 BAD_CHANNELS = {
@@ -29,7 +29,9 @@ BAD_CHANNELS = {
     "DBSTRD008": ['ZLdPF-ACC08-024','CLdPF-ACC09-025','RSTG-Amy14-206','RSTG-Amy09-201','RSTG-Amy07-199', 'RdPF-mPF03-131', 'LdPF-ACC10-026'],
     "DBSTRD010": ['ZLdPF-ACC04-020','CLdPF-ACC05-021','LdPF-ACC06-022'],
     "DBSTRD011": ['RMTG-Amy02-066','RMTG-Amy03-067','RMTG-Amy04-068','RMTG-Amy05-069'],
-    "DBSTRD014": ['CSub-Gale08-100','Sub-Gale01-093', 'Sub-Gale02-094', 'Sub-Gale03-095', 'Sub-Gale04-096', 'Sub-Gale05-097', 'Sub-Gale06-098', 'Sub-Gale07-099']
+    "DBSTRD014": ['CSub-Gale08-100','Sub-Gale01-093', 'Sub-Gale02-094', 'Sub-Gale03-095', 'Sub-Gale04-096', 'Sub-Gale05-097', 'Sub-Gale06-098', 'Sub-Gale07-099',
+                  'RSTG-Amy14-014','RSTG-Amy15-015', 'RSTG-Amy16-016', 'LDLP-VMP03-175','LIFG-OFC07-071','RIFG-OFC02-144','RDLP-VMP14-142','RDLP-VMP01-129', 'RDLP-VMP03-131','RDLP-VMP05-133',
+                  'RDLP-ACC09-041','RDLP-ACC10-042','RDLP-ACC03-035']
 }
 
 # preprocessing code
@@ -55,7 +57,7 @@ for SBJ_NAME in ALL_SUBJ:
             skipped_sessions.append((simplified_block_name,(X_counts.shape[-1])/fs))
             continue    
 
-        # use just the dbs leads for now
+        # use just the seeg electrodes for now
         seeg_chans, seeg_indices = find_seeg_channels(channel_names=ch_names_all, pattern=SEEG_PATTERN)
         
         ext_headers_dbs = [ext_headers_all[i] for i in seeg_indices]
@@ -88,9 +90,14 @@ for SBJ_NAME in ALL_SUBJ:
         if raw_seeg.info['bads']:
             raw_seeg.drop_channels(raw_seeg.info['bads'])
 
-        # common average reference the data
-        probes = create_seeg_probes(raw_file=raw_seeg)
+        # save the raw fif at 2000hz with the bad channels removed and the filtering done
+        raw_fif_dir = os.path.join(SEEG_DATA_ROOT,"raw_fif_files")
+        os.makedirs(raw_fif_dir, exist_ok=True)
+        raw_fif_path = os.path.join(raw_fif_dir, f"{simplified_block_name}.fif")
+        if OVERWRITE or not os.path.exists(raw_fif_path):
+            raw_seeg.save(raw_fif_path, overwrite=True)
 
+        probes = create_seeg_probes(raw_file=raw_seeg)
         # bipolar reference the data
         bipolar_dir = os.path.join(SEEG_DATA_ROOT, "bipolar_channels")
         os.makedirs(bipolar_dir, exist_ok=True)

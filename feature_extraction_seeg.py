@@ -3,13 +3,11 @@ import os
 import mne
 import pandas as pd
 import pprint
-
+from config import BASE_DIR_SEEG, CATDI_SCORES
 
 # define the list of sessions to exclude 
 EXCLUDED_SESSIONS = {
     "DBSTRD001": ["CATDI_run-08_blk-04"],
-    
-    #"DBSTRD002": ["CATDI_run-Day6_blk-02"],
     "DBSTRD002": ["CATDI_run-Day5_blk-04", "CATDI_run-Day7_blk-05", "CATDI_run-Day3_blk-02","CATDI_run-Day3_blk-03"],
     "DBSTRD006": ["CATDI_date-02-08-2022_time-12-42-20"],
     "DBSTRD008": ["CATDI_date-10-25-2022_time-20-20-50","CATDI_date-10-25-2022_time-13-42-28","CATDI_date-10-25-2022_time-11-27-18",
@@ -18,7 +16,8 @@ EXCLUDED_SESSIONS = {
                   "CATDI_date-10-26-2022_time-18-24-14"],
     "DBSTRD010": ["CATDI_date-05-11-2023_time-16-20-04"],
     "DBSTRD011": ["CATDI_date-20240724_time-145011", "CATDI_date-20240719_time-213319","CATDI_date-20240724_time-111946"],
-    "DBSTRD014": ["CATDI_date-20250307_time-130552","CATDI_date-20250312_time-183153","CATDI_date-20250311_time-100834"]
+    "DBSTRD014": ["CATDI_date-20250307_time-130552","CATDI_date-20250312_time-183153","CATDI_date-20250307_time-195211",
+                  "CATDI_date-20250308_time-084929"]
 }
 
 # default template setttings
@@ -71,9 +70,10 @@ settings["features"]["coherence"] = False
 # print settings to verify everything is okay
 pprint.pprint(settings)
 
-all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData'
-catdi_scores_excel = "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx"
+#all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+all_subjs = ["DBSTRD011"]
+base_dir = str(BASE_DIR_SEEG)
+catdi_scores_excel =str(CATDI_SCORES)
 all_session_results = []
 
 for subj in all_subjs:
@@ -83,7 +83,7 @@ for subj in all_subjs:
     # bring in the catdi scores
     catdi_excel = pd.read_excel(catdi_scores_excel, sheet_name=subj)
     # clean up the names if they have text before CATDI
-    if subj =="DBSTRD014":
+    if subj in ["DBSTRD014","DBSTRD011"]:
         catdi_excel["session"] = catdi_excel["Name"].str.split("_task-").str[1]
     else:
         catdi_excel["session"] = catdi_excel["Name"]

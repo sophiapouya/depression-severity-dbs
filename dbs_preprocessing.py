@@ -7,8 +7,8 @@ from config import ROOT_DIR
 # paths
 DATA_ROOT = str(ROOT_DIR)
 PROJECT_NAME = "CATDI"
-#ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-ALL_SUBJ = ["DBSTRD011","DBSTRD014"]
+ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#ALL_SUBJ = ["DBSTRD011","DBSTRD014"]
 
 # channel patterns
 DBS_CHANNEL_PATTERNS = ['*scc*', '*vcvs*'] 
@@ -18,7 +18,7 @@ PLOTTING_SCALE = 200e-6
 TARGET_SFREQ = 2000  
 
 # flags
-OVERWRITE = True
+OVERWRITE = False
 
 for SBJ_NAME in ALL_SUBJ:
 
@@ -129,18 +129,25 @@ for SBJ_NAME in ALL_SUBJ:
         if raw_dbs.info['bads']:
             raw_dbs.drop_channels(raw_dbs.info['bads'])
 
-        # common average reference the data
-        probes = create_dbs_probes(raw_file=raw_dbs)
+        # save the raw fif at 2000hz with bad channels removed and filtering done
+        raw_fif_dir = os.path.join(DBS_DATA_ROOT,"raw_fif_files")
+        os.makedirs(raw_fif_dir, exist_ok=True)
+        raw_fif_path = os.path.join(raw_fif_dir, f"{simplified_block_name}.fif")
+        if OVERWRITE or not os.path.exists(raw_fif_path):
+            raw_dbs.save(raw_fif_path, overwrite=True)
+        
+        # # common average reference the data
+        # probes = create_dbs_probes(raw_file=raw_dbs)
 
-        # # bipolar reference the data
-        # bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
-        # os.makedirs(bipolar_dir, exist_ok=True)
-        # save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
+        # # # bipolar reference the data
+        # # bipolar_dir = os.path.join(DBS_DATA_ROOT, "bipolar_channels")
+        # # os.makedirs(bipolar_dir, exist_ok=True)
+        # # save_dbs_chans(probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_dir, mode= "bipolar_regular")
 
-        # bipolar alternating referencing for the data
-        bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
-        os.makedirs(bipolar_alternating_dir, exist_ok = True)
-        save_dbs_chans(patient=SBJ_NAME, probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
+        # # bipolar alternating referencing for the data
+        # bipolar_alternating_dir = os.path.join(DBS_DATA_ROOT, "bipolar_alternating_channels")
+        # os.makedirs(bipolar_alternating_dir, exist_ok = True)
+        # save_dbs_chans(patient=SBJ_NAME, probes=probes, raw_data=raw_dbs, block_name= simplified_block_name, save_dir=bipolar_alternating_dir, mode="bipolar_alternating")
 
         # # common average reference
         # car_dir = os.path.join(DBS_DATA_ROOT, "car_channels")
