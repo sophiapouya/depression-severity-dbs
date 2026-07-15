@@ -164,7 +164,7 @@ performance_df = pd.DataFrame(performance_metrics)
 performance_df.to_csv(csv, index=False)
 
 # output figure for all patients 
-fig_path = os.path.join(output_dir, f"lasso_decoding_results_manual_power_{cv_choice}.png")
+fig_path = os.path.join(output_dir, f"lasso_{cv_choice}.png")
 n_rows = 2
 n_cols = math.ceil(len(all_subjs)/n_rows)
 

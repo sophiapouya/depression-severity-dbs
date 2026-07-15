@@ -18,13 +18,13 @@ from config import BASE_DIR_SEEG, CATDI_SCORES
 cv_choice="LOO" # choices -> LOO or KFOLD
 
 # define input files
-label = "new_labels_all_best_region_including_none_contacts"
+label = "all_regions"
 catdi_scores_file = str(CATDI_SCORES)
 base_dir = str(BASE_DIR_SEEG)
 all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs= ["DBSTRD001"]
 #regions = ["acc"]
-regions= ["dlpfc"]
+regions= ["acc", "amy", "ofc", "vmpfc", "dlpfc"]
 
 # list for keeping track of performance for output csv
 performance_metrics = []
@@ -220,7 +220,7 @@ performance_df = pd.DataFrame(performance_metrics)
 performance_df.to_csv(csv, index=False)
 
 # output figure for all patients 
-fig_path = os.path.join(output_dir, f"dlpfc_only_{label}_lasso_decoding_results_manual_power_{cv_choice}.png")
+fig_path = os.path.join(output_dir, f"{label}_{cv_choice}.png")
 
 n_rows = 2
 n_cols = math.ceil(len(all_subjs)/n_rows)
