@@ -1,0 +1,12 @@
+{
+    "paths":{
+        "base_dir_seeg": "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData",
+        "catdi_scores": "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_scores.xlsx",
+        "base_dir_dbs": "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData",
+        "catdi_electrodes": "/Users/sophiapouya/workspace/bcm/CATDI/CATDI_electrodes.xlsx",
+        "dbs_features_csv": "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData/CATDI_master_features.csv",
+        "seeg_features_csv": "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/CATDI_master_features.csv",
+        "seeg_features_gm_csv": "/Users/sophiapouya/workspace/bcm/CATDI/neuralData/seegData/CATDI_master_features_greymatter.csv",
+        "root_dir": "/Users/sophiapouya/workspace/bcm"
+    }
+}
