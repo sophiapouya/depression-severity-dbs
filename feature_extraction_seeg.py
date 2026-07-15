@@ -70,15 +70,15 @@ settings["features"]["coherence"] = False
 # print settings to verify everything is okay
 pprint.pprint(settings)
 
-#all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-all_subjs = ["DBSTRD011"]
+all_subjs= ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#all_subjs = ["DBSTRD006"]
 base_dir = str(BASE_DIR_SEEG)
 catdi_scores_excel =str(CATDI_SCORES)
 all_session_results = []
 
 for subj in all_subjs:
     sbj_dir = os.path.join(base_dir,subj)
-    fif_dir = os.path.join(sbj_dir, "bipolar_channels")
+    fif_dir = os.path.join(sbj_dir, "bipolar_channels_greymatter")
 
     # bring in the catdi scores
     catdi_excel = pd.read_excel(catdi_scores_excel, sheet_name=subj)
@@ -153,8 +153,8 @@ other_cols = [c for c in master_df.columns if c not in id_cols]
 master_df = master_df[id_cols + other_cols]
 
 # save as pkl and csv
-csv_path = os.path.join(base_dir, "CATDI_master_features.csv")
+csv_path = os.path.join(base_dir, "CATDI_master_features_gm_bursting.csv")
 master_df.to_csv(csv_path, index=False)
 
-pkl_path = os.path.join(base_dir, "CATDI_master_features.pkl")
+pkl_path = os.path.join(base_dir, "CATDI_master_features_gm_bursting.pkl")
 master_df.to_pickle(pkl_path)

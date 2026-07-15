@@ -3,10 +3,11 @@ import os
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
-from config import FEATURES_SEEG, BASE_DIR_SEEG
+from statsmodels.stats.multitest import fdrcorrection
+from config import FEATURES_SEEG_GM, BASE_DIR_SEEG
 
 # read in features csv
-features_csv_path = str(FEATURES_SEEG)
+features_csv_path = str(FEATURES_SEEG_GM)
 feature_pd = pd.read_csv(features_csv_path)
 
 # output directory
@@ -67,7 +68,15 @@ for patient in feature_pd["patient_id"].unique():
                              "fft_beta_mean","fft_low_gamma_mean", "fft_high_gamma_mean"]
             corr_matrix=corr_matrix.loc[desired_order]
             pval_matrix=pval_matrix.loc[desired_order]
-        annotations = pval_matrix.map(lambda p: '*' if p<0.05 else "")
+
+        p_vals_flat = pval_matrix.values.flatten()
+        _, corrected_p_vals = fdrcorrection(p_vals_flat)
+        pval_matrix_corrected = pd.DataFrame(
+            corrected_p_vals.reshape(pval_matrix.shape),
+            index=pval_matrix.index,
+            columns=pval_matrix.columns
+        )
+        annotations = pval_matrix_corrected.map(lambda p: '*' if p < 0.05 else "")
 
         plt.figure(figsize=(12,10))
         plt.title(f"{patient}_{feature}_Heatmap")

@@ -3,6 +3,7 @@ import os
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
+from statsmodels.stats.multitest import fdrcorrection
 from config import FEATURES_DBS, BASE_DIR_DBS
 
 # read in features csv
@@ -25,6 +26,20 @@ features_dict= { "Hjorth":
                 "Fooof": 
                     ["fooof_a_exp","fooof_a_offset"]
 }
+
+STANDARD_CONTACT_ORDER = [
+    "LVCVS_1", "LVCVS_2", "LVCVS_3",
+    "LSCC_1", "LSCC_2", "LSCC_3",
+    "RSCC_1", "RSCC_2", "RSCC_3",
+    "RVCVS_1", "RVCVS_2", "RVCVS_3",
+]
+
+VCVS_8_CONTACT_ORDER = [
+    "LVCVS_2-1", "LVCVS_3-2", "LVCVS_4-3", "LVCVS_5-4", "LVCVS_6-5", "LVCVS_7-6", "LVCVS_8-7",
+    "LSCC_1", "LSCC_2", "LSCC_3",
+    "RSCC_1", "RSCC_2", "RSCC_3",
+    "RVCVS_2-1", "RVCVS_3-2", "RVCVS_4-3", "RVCVS_5-4", "RVCVS_6-5", "RVCVS_7-6", "RVCVS_8-7",
+]
 
 for patient in feature_pd["patient_id"].unique():
     patient_df = feature_pd[feature_pd["patient_id"] == patient]
@@ -61,13 +76,28 @@ for patient in feature_pd["patient_id"].unique():
         correlation_df = pd.DataFrame(correlation_vals)
         corr_matrix = correlation_df.pivot(index="feature", columns="contact", values="r")
         pval_matrix = correlation_df.pivot(index="feature", columns="contact", values="p")
+        if patient in ["DBSTRD011", "DBSTRD014"]:
+            desired_contact_order = [contact for contact in VCVS_8_CONTACT_ORDER if contact in corr_matrix.columns]
+        else:
+            desired_contact_order = [contact for contact in STANDARD_CONTACT_ORDER if contact in corr_matrix.columns]
+
+        corr_matrix = corr_matrix.reindex(columns=desired_contact_order)
+        pval_matrix = pval_matrix.reindex(columns=desired_contact_order)
         if feature == "Fft":
             # drawn from top to bottom
             desired_order = ["fft_delta_mean", "fft_theta_mean","fft_alpha_mean", 
                              "fft_beta_mean","fft_low_gamma_mean", "fft_high_gamma_mean"]
             corr_matrix=corr_matrix.loc[desired_order]
             pval_matrix=pval_matrix.loc[desired_order]
-        annotations = pval_matrix.map(lambda p: '*' if p<0.05 else "")
+
+        p_vals_flat = pval_matrix.values.flatten()
+        _, corrected_p_vals = fdrcorrection(p_vals_flat)
+        pval_matrix_corrected = pd.DataFrame(
+            corrected_p_vals.reshape(pval_matrix.shape),
+            index=pval_matrix.index,
+            columns=pval_matrix.columns
+        )
+        annotations = pval_matrix_corrected.map(lambda p: '*' if p < 0.05 else "")
 
         plt.figure(figsize=(12,10))
         plt.title(f"{patient}_{feature}_Heatmap")
