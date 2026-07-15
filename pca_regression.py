@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import math
 from config import BASE_DIR_DBS, BASE_DIR_SEEG, FEATURES_DBS, FEATURES_SEEG
 
-probe_type = "DBS"      # choices: "DBS", "SEEG"
+probe_type = "SEEG"      # choices: "DBS", "SEEG"
 
 # regression model
 model_choice = "OLS"    # choices: "RIDGE", "OLS"
@@ -26,8 +26,8 @@ cv_choice = "LOO"     # choices: "KFOLD", "LOO"
 if probe_type == "DBS":
     base_dir = str(BASE_DIR_DBS)
     csv_path = str(FEATURES_DBS)
-    #probe_options = ["LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"]
-    probe_options= ["ALL"]
+    probe_options = ["LEFT", "RIGHT", "ALL", "LSCC", "RSCC", "RVCVS", "LVCVS", "SCC", "VCVS"]
+    # probe_options= ["ALL"]
 else:
     base_dir = str(BASE_DIR_SEEG)
     csv_path = str(FEATURES_SEEG)

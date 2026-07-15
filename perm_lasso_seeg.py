@@ -24,14 +24,14 @@ parser.add_argument("--patient_id", type=str, required=True)
 args = parser.parse_args()
 patient_id = args.patient_id
 
-regions = ["dlpfc"]
+regions = ["acc", "vmpfc", "dlpfc", "ofc", "amy"]
 l1_reg_list = np.around(np.arange(0.1, 1.1, 0.1), 1)
 outlier = 4
 
 n_permutations = 1000
 random_seed = 42
 
-output_dir = os.path.join(base_dir, "lasso_permutation_test_dlpfc_only")
+output_dir = os.path.join(base_dir, "lasso_permutation_test")
 os.makedirs(output_dir, exist_ok=True)
 
 # -----------------------------

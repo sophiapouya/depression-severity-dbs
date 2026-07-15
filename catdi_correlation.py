@@ -5,11 +5,11 @@ from scipy.stats import pearsonr
 import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection
-from config import BASE_DIR_DBS, BASE_DIR_SEEG, CATDI_SCORES, CATDI_ELECTRODES
+from config import BASE_DIR_DBS, BASE_DIR_SEEG, CATDI_SCORES
 
-ELEC_TYPE = "DBS"  # either DBS or SEEG
+ELEC_TYPE = "SEEG"  # either DBS or SEEG
 
-catdi_scores_excel = str(CATDI_ELECTRODES)
+catdi_scores_excel = str(CATDI_SCORES)
 all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
 #all_subjs = ["DBSTRD011", "DBSTRD014"]
 
