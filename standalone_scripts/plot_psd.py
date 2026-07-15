@@ -6,8 +6,8 @@ import plotly.graph_objects as go
 
 electrode_type = "DBS"  # choices: DBS or SEEG
 
-#all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-all_subjs= ["DBSTRD014"]
+all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
+#all_subjs= ["DBSTRD014"]
 if electrode_type == "DBS":
     base_dir = '/Users/sophiapouya/workspace/bcm/CATDI/neuralData/dbsData'
 else:
