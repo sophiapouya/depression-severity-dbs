@@ -8,7 +8,7 @@ from config import ROOT_DIR
 DATA_ROOT = str(ROOT_DIR)
 PROJECT_NAME = "CATDI"
 ALL_SUBJ = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-#ALL_SUBJ = ["DBSTRD011","DBSTRD014"]
+#ALL_SUBJ = ["DBSTRD014"]
 
 # channel patterns
 DBS_CHANNEL_PATTERNS = ['*scc*', '*vcvs*'] 
@@ -35,7 +35,6 @@ for SBJ_NAME in ALL_SUBJ:
 
         # load nsx, dbs channels
         X_counts, ch_names_all, fs, ext_headers_all, original_elec_ids = load_blackrock_data(nsx_path)
-        
         # remove all sessions less than 45 seconds total
         if (X_counts.shape[-1])/fs < 45:
             continue    

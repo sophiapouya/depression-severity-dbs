@@ -463,20 +463,23 @@ def get_seeg_metadata(
     
     final_dict = {}
     excel_df = pd.read_excel(file_path, sheet_name=patient)
-    # drop all the dbs contacts
-    clean_excel = excel_df[excel_df['Type'] != "DBS"]
+    
+    # Drop all the DBS contacts
+    clean_excel = excel_df[excel_df['Type'] != "DBS"].copy()  # .copy() fixes the SettingWithCopyWarning too
 
-    # make the row None if there is no area on it
+    # Fill missing areas and drop rows with no label
     clean_excel["area"] = clean_excel["area"].fillna("none")
+    clean_excel = clean_excel.dropna(subset=["Label"])
 
     for i, row in clean_excel.iterrows():
-        label = str(row["Label"].strip().lower())
-        region = str(row["area"].strip().lower())
-        
+        label = str(row["Label"]).strip().lower()
+        region = str(row["area"]).strip().lower()
+        # exclude white matter contacts regardless of region label
+        if str(row.get("Grey v White", "Grey")).strip() == "White":
+            region = "none"
         final_dict[label] = region
 
     return final_dict
-
 
 def output_metadata(
     file_path: str,

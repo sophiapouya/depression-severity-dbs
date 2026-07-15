@@ -5,14 +5,12 @@ from config import BASE_DIR_SEEG
 
 base_dir = str(BASE_DIR_SEEG)
 #all_subjs = ["DBSTRD001","DBSTRD002","DBSTRD006","DBSTRD008","DBSTRD010","DBSTRD011","DBSTRD014"]
-all_subjs = ["DBSTRD014"]
+all_subjs = ["DBSTRD006"]
 REF_TYPE = "bipolar"
 
 # define the list of sessions to exclude 
 EXCLUDED_SESSIONS = {
     "DBSTRD001": ["CATDI_run-08_blk-04"],
-    
-    #"DBSTRD002": ["CATDI_run-Day6_blk-02"],
     "DBSTRD002": ["CATDI_run-Day5_blk-04", "CATDI_run-Day7_blk-05", "CATDI_run-Day3_blk-02","CATDI_run-Day3_blk-03"],
     "DBSTRD006": ["CATDI_date-02-08-2022_time-12-42-20"],
     "DBSTRD008": ["CATDI_date-10-25-2022_time-20-20-50","CATDI_date-10-25-2022_time-13-42-28","CATDI_date-10-25-2022_time-11-27-18",
